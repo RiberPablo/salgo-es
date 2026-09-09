@@ -339,19 +339,13 @@ export default async function Home() {
 
                     </div>
 
-                    {venue.instagram ? (
-                      <a
-                        href={venue.instagram}
-                        target="_blank"
-                        className="mt-5 block w-full rounded-xl bg-white/[0.05] py-3 text-center text-sm font-medium text-white transition hover:bg-lime-400 hover:text-black"
-                      >
-                        Ver local
-                      </a>
-                    ) : (
-                      <button className="mt-5 w-full rounded-xl bg-white/[0.05] py-3 text-sm font-medium text-white transition hover:bg-lime-400 hover:text-black">
-                        Ver local
-                      </button>
-                    )}
+                    <a
+                      href={`/local/${venue.id}`}
+                      target="_blank"
+                      className="mt-5 block w-full rounded-xl bg-white/[0.05] py-3 text-center text-sm font-medium text-white transition hover:bg-lime-400 hover:text-black"
+                    >
+                      Ver local
+                    </a>
 
                   </div>
 
