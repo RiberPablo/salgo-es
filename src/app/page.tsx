@@ -209,7 +209,7 @@ export default function Home() {
               </p>
 
               <h2 className="mt-1 text-3xl font-bold">
-                ¿Qué te apetece hoy Fran?
+                ¿Qué te apetece hoy?
               </h2>
             </div>
 
