@@ -1,52 +1,16 @@
-export default function Home() {
-  const categories = [
-    { icon: "🪩", name: "Discotecas", count: "42 sitios" },
-    { icon: "🍸", name: "Pubs", count: "28 sitios" },
-    { icon: "🍹", name: "Tardeos", count: "19 sitios" },
-    { icon: "🍺", name: "Bares", count: "64 sitios" },
-  ];
+import { getVenues } from "@/lib/venues";
 
-  const venues = [
-    {
-      name: "Sala Example",
-      city: "Madrid",
-      zone: "Centro",
-      type: "Discoteca",
-      genres: ["Reggaeton", "Comercial"],
-      entry: "15€",
-      drink: "8€",
-      image: "https://images.unsplash.com/photo-1566737236500-c8ac43014a67?auto=format&fit=crop&w=1200&q=80",
-    },
-    {
-      name: "The Night Club",
-      city: "Madrid",
-      zone: "Malasaña",
-      type: "Pub",
-      genres: ["House", "Electrónica"],
-      entry: "Gratis",
-      drink: "9€",
-      image: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1200&q=80",
-    },
-    {
-      name: "Tardeo Example",
-      city: "Toledo",
-      zone: "Casco histórico",
-      type: "Tardeo",
-      genres: ["Pop", "Latin"],
-      entry: "10€",
-      drink: "7€",
-      image: "https://images.unsplash.com/photo-1527529482837-4698179dc6ce?auto=format&fit=crop&w=1200&q=80",
-    },
-    {
-      name: "Urban Room",
-      city: "Illescas",
-      zone: "Centro",
-      type: "Bar",
-      genres: ["Urban", "Hip Hop"],
-      entry: "Gratis",
-      drink: "6€",
-      image: "https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=1200&q=80",
-    },
+export default async function Home() {
+  const venues = await getVenues();
+
+  const countByTipo = (tipo: string) =>
+    venues.filter((v) => v.tipo_local?.toLowerCase() === tipo).length;
+
+  const categories = [
+    { icon: "🪩", name: "Discotecas", count: `${countByTipo("discoteca")} sitios` },
+    { icon: "🍸", name: "Pubs", count: `${countByTipo("pub")} sitios` },
+    { icon: "🍹", name: "Tardeos", count: `${countByTipo("tardeo")} sitios` },
+    { icon: "🍺", name: "Bares", count: `${countByTipo("bar")} sitios` },
   ];
 
   return (
@@ -279,104 +243,124 @@ export default function Home() {
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
 
-            {venues.map((venue) => (
-              <article
-                key={venue.name}
-                className="group overflow-hidden rounded-3xl border border-white/5 bg-zinc-900 transition duration-300 hover:-translate-y-1 hover:border-white/20"
-              >
-                
-                {/* IMAGEN */}
-                <div className="relative h-64 overflow-hidden bg-zinc-800">
+            {venues.map((venue) => {
+              const foto =
+                venue.photos?.find((p) => p.is_main)?.image_url ??
+                venue.photos?.[0]?.image_url ??
+                "https://images.unsplash.com/photo-1566737236500-c8ac43014a67?auto=format&fit=crop&w=1200&q=80";
 
-                  <img
-                    src={venue.image}
-                    alt={venue.name}
-                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                  />
+              const generos = venue.venue_genres
+                ?.map((vg) => vg.genres?.nombre)
+                .filter(Boolean) as string[];
 
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+              return (
+                <article
+                  key={venue.id}
+                  className="group overflow-hidden rounded-3xl border border-white/5 bg-zinc-900 transition duration-300 hover:-translate-y-1 hover:border-white/20"
+                >
+                  
+                  {/* IMAGEN */}
+                  <div className="relative h-64 overflow-hidden bg-zinc-800">
 
-                  <div className="absolute left-4 top-4 rounded-full bg-black/50 px-3 py-1.5 text-xs font-medium text-white backdrop-blur">
-                    {venue.type}
-                  </div>
+                    <img
+                      src={foto}
+                      alt={venue.nombre}
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    />
 
-                  <button className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur transition hover:bg-white hover:text-black">
-                    ♡
-                  </button>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
 
-                  <div className="absolute bottom-4 left-4">
-                    <p className="text-sm text-zinc-300">
-                      📍 {venue.zone}
-                    </p>
+                    <div className="absolute left-4 top-4 rounded-full bg-black/50 px-3 py-1.5 text-xs font-medium capitalize text-white backdrop-blur">
+                      {venue.tipo_local ?? "Local"}
+                    </div>
 
-                    <p className="text-xs text-zinc-400">
-                      {venue.city}
-                    </p>
-                  </div>
+                    <button className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur transition hover:bg-white hover:text-black">
+                      ♡
+                    </button>
 
-                </div>
+                    <div className="absolute bottom-4 left-4">
+                      <p className="text-sm text-zinc-300">
+                        📍 {venue.zones?.nombre ?? "Sin zona"}
+                      </p>
 
-
-                {/* INFORMACION */}
-                <div className="p-5">
-
-                  <h3 className="text-lg font-bold">
-                    {venue.name}
-                  </h3>
-
-
-                  <div className="mt-4 flex flex-wrap gap-2">
-
-                    {venue.genres.map((genre) => (
-                      <span
-                        key={genre}
-                        className="rounded-full bg-white/[0.05] px-3 py-1 text-xs text-zinc-400"
-                      >
-                        🎵 {genre}
-                      </span>
-                    ))}
-
-                  </div>
-
-
-                  <div className="mt-5 border-t border-white/5 pt-4">
-
-                    <div className="flex items-center justify-between text-sm">
-
-                      <div>
-                        <p className="text-xs text-zinc-500">
-                          Entrada
-                        </p>
-
-                        <p className="font-semibold text-white">
-                          {venue.entry}
-                        </p>
-                      </div>
-
-
-                      <div className="text-right">
-                        <p className="text-xs text-zinc-500">
-                          Copa
-                        </p>
-
-                        <p className="font-semibold text-white">
-                          {venue.drink}
-                        </p>
-                      </div>
-
+                      <p className="text-xs text-zinc-400">
+                        {venue.cities?.nombre ?? ""}
+                      </p>
                     </div>
 
                   </div>
 
 
-                  <button className="mt-5 w-full rounded-xl bg-white/[0.05] py-3 text-sm font-medium text-white transition hover:bg-lime-400 hover:text-black">
-                    Ver local
-                  </button>
+                  {/* INFORMACION */}
+                  <div className="p-5">
 
-                </div>
+                    <h3 className="text-lg font-bold">
+                      {venue.nombre}
+                    </h3>
 
-              </article>
-            ))}
+
+                    {generos && generos.length > 0 && (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {generos.map((genre) => (
+                          <span
+                            key={genre}
+                            className="rounded-full bg-white/[0.05] px-3 py-1 text-xs text-zinc-400"
+                          >
+                            🎵 {genre}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+
+                    <div className="mt-5 border-t border-white/5 pt-4">
+
+                      <div className="flex items-center justify-between text-sm">
+
+                        <div>
+                          <p className="text-xs text-zinc-500">
+                            Entrada
+                          </p>
+
+                          <p className="font-semibold text-white">
+                            {venue.precio_entrada ? `${venue.precio_entrada}€` : "Consultar"}
+                          </p>
+                        </div>
+
+
+                        <div className="text-right">
+                          <p className="text-xs text-zinc-500">
+                            Copa
+                          </p>
+
+                          <p className="font-semibold text-white">
+                            {venue.precio_copa ? `${venue.precio_copa}€` : "Consultar"}
+                          </p>
+                        </div>
+
+                      </div>
+
+                    </div>
+
+                    {venue.instagram ? (
+                      
+                        href={venue.instagram}
+                        target="_blank"
+                        className="mt-5 block w-full rounded-xl bg-white/[0.05] py-3 text-center text-sm font-medium text-white transition hover:bg-lime-400 hover:text-black"
+                      >
+                        Ver local
+                      </a>
+                    ) : (
+                      <button className="mt-5 w-full rounded-xl bg-white/[0.05] py-3 text-sm font-medium text-white transition hover:bg-lime-400 hover:text-black">
+                        Ver local
+                      </button>
+                    )}
+
+                  </div>
+
+                </article>
+              );
+            })}
 
           </div>
 
