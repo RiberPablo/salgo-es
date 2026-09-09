@@ -78,3 +78,46 @@ export async function getVenuesByTipo(tipoLocal: string): Promise<Venue[]> {
 
   return data as unknown as Venue[];
 }
+
+export type SearchParams = {
+  q?: string; // texto libre: busca en nombre y direccion
+  tipo?: string; // valor singular en BD: discoteca | pub | tardeo | bar
+  genero?: string; // nombre del genero musical, ej: "Reggaeton"
+};
+
+export async function searchVenues(params: SearchParams): Promise<Venue[]> {
+  const { q, tipo, genero } = params;
+
+  // Si filtramos por genero necesitamos el inner join para que solo
+  // devuelva locales que SI tengan ese genero asociado.
+  const select = genero
+    ? VENUE_SELECT.replace(
+        "venue_genres ( genres ( nombre ) )",
+        "venue_genres!inner ( genres!inner ( nombre ) )"
+      )
+    : VENUE_SELECT;
+
+  let query = supabase.from("venues").select(select).eq("activo", true);
+
+  if (tipo) {
+    query = query.eq("tipo_local", tipo);
+  }
+
+  if (q && q.trim().length > 0) {
+    const term = q.trim();
+    query = query.or(`nombre.ilike.%${term}%,direccion.ilike.%${term}%`);
+  }
+
+  if (genero && genero.trim().length > 0) {
+    query = query.ilike("venue_genres.genres.nombre", genero.trim());
+  }
+
+  const { data, error } = await query.order("nombre");
+
+  if (error) {
+    console.error("Error buscando locales:", error.message);
+    return [];
+  }
+
+  return data as unknown as Venue[];
+}
