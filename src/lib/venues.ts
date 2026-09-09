@@ -61,3 +61,20 @@ export async function getVenueById(id: string): Promise<Venue | null> {
 
   return data as unknown as Venue;
 }
+
+// tipoLocal debe ser el valor singular guardado en BD: 'discoteca', 'pub', 'tardeo', 'bar'
+export async function getVenuesByTipo(tipoLocal: string): Promise<Venue[]> {
+  const { data, error } = await supabase
+    .from("venues")
+    .select(VENUE_SELECT)
+    .eq("activo", true)
+    .eq("tipo_local", tipoLocal)
+    .order("nombre");
+
+  if (error) {
+    console.error("Error cargando locales por tipo:", error.message);
+    return [];
+  }
+
+  return data as unknown as Venue[];
+}

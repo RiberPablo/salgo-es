@@ -7,11 +7,16 @@ export default async function Home() {
     venues.filter((v) => v.tipo_local?.toLowerCase() === tipo).length;
 
   const categories = [
-    { icon: "🪩", name: "Discotecas", count: `${countByTipo("discoteca")} sitios` },
-    { icon: "🍸", name: "Pubs", count: `${countByTipo("pub")} sitios` },
-    { icon: "🍹", name: "Tardeos", count: `${countByTipo("tardeo")} sitios` },
-    { icon: "🍺", name: "Bares", count: `${countByTipo("bar")} sitios` },
+    { icon: "🪩", name: "Discotecas", count: `${countByTipo("discoteca")} sitios`, slug: "discotecas" },
+    { icon: "🍸", name: "Pubs", count: `${countByTipo("pub")} sitios`, slug: "pubs" },
+    { icon: "🍹", name: "Tardeos", count: `${countByTipo("tardeo")} sitios`, slug: "tardeos" },
+    { icon: "🍺", name: "Bares", count: `${countByTipo("bar")} sitios`, slug: "bares" },
   ];
+
+  // En la home solo destacamos un puñado: priorizamos los que ya tienen foto real subida
+  const conFoto = venues.filter((v) => v.photos && v.photos.length > 0);
+  const sinFoto = venues.filter((v) => !v.photos || v.photos.length === 0);
+  const destacados = [...conFoto, ...sinFoto].slice(0, 4);
 
   return (
     <main className="min-h-screen bg-[#09090b] text-white">
@@ -31,16 +36,16 @@ export default async function Home() {
           </div>
 
           <nav className="hidden items-center gap-7 text-sm text-zinc-400 md:flex">
-            <a href="#" className="text-white">
+            <a href="/" className="text-white">
               Explorar
             </a>
-            <a href="#" className="transition hover:text-white">
+            <a href="/categoria/discotecas" className="transition hover:text-white">
               Discotecas
             </a>
-            <a href="#" className="transition hover:text-white">
+            <a href="/categoria/tardeos" className="transition hover:text-white">
               Tardeos
             </a>
-            <a href="#" className="transition hover:text-white">
+            <a href="/categoria/pubs" className="transition hover:text-white">
               Pubs
             </a>
           </nav>
@@ -176,17 +181,14 @@ export default async function Home() {
                 ¿Qué te apetece hoy?
               </h2>
             </div>
-
-            <button className="hidden text-sm text-zinc-400 sm:block">
-              Ver todo →
-            </button>
           </div>
 
 
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             {categories.map((category) => (
-              <button
+              <a
                 key={category.name}
+                href={`/categoria/${category.slug}`}
                 className="group rounded-3xl border border-white/5 bg-zinc-900 p-5 text-left transition duration-300 hover:-translate-y-1 hover:border-lime-400/40 hover:bg-zinc-800"
               >
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.05] text-2xl transition group-hover:bg-lime-400">
@@ -204,7 +206,7 @@ export default async function Home() {
                 <div className="mt-5 text-lime-400">
                   →
                 </div>
-              </button>
+              </a>
             ))}
           </div>
 
@@ -234,16 +236,19 @@ export default async function Home() {
             </div>
 
 
-            <button className="w-fit rounded-xl border border-white/10 px-4 py-2 text-sm text-zinc-300 transition hover:bg-white hover:text-black">
-              Ver en mapa 🗺️
-            </button>
+            <a
+              href="/categoria/discotecas"
+              className="w-fit rounded-xl border border-white/10 px-4 py-2 text-sm text-zinc-300 transition hover:bg-white hover:text-black"
+            >
+              Ver todos →
+            </a>
 
           </div>
 
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
 
-            {venues.map((venue) => {
+            {destacados.map((venue) => {
               const foto =
                 venue.photos?.find((p) => p.is_main)?.image_url ??
                 venue.photos?.[0]?.image_url ??
@@ -341,7 +346,6 @@ export default async function Home() {
 
                     <a
                       href={`/local/${venue.id}`}
-                      target="_blank"
                       className="mt-5 block w-full rounded-xl bg-white/[0.05] py-3 text-center text-sm font-medium text-white transition hover:bg-lime-400 hover:text-black"
                     >
                       Ver local
@@ -376,9 +380,12 @@ export default async function Home() {
               Explora locales según tu ciudad, tus gustos musicales y el tipo de plan que buscas.
             </p>
 
-            <button className="mt-7 rounded-xl bg-lime-400 px-6 py-3 font-bold text-black transition hover:bg-lime-300">
+            <a
+              href="/categoria/discotecas"
+              className="mt-7 inline-block rounded-xl bg-lime-400 px-6 py-3 font-bold text-black transition hover:bg-lime-300"
+            >
               Explorar locales →
-            </button>
+            </a>
           </div>
 
         </div>
