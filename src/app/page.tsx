@@ -15,11 +15,11 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen bg-[#09090b] text-white">
-      
+
       {/* HEADER */}
       <header className="sticky top-0 z-50 border-b border-white/5 bg-[#09090b]/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
-          
+
           <div className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-lime-400 text-lg font-black text-black">
               S
@@ -54,13 +54,13 @@ export default async function Home() {
 
       {/* HERO */}
       <section className="relative overflow-hidden px-5 pb-10 pt-12 md:pb-16 md:pt-20">
-        
+
         <div className="absolute left-1/2 top-0 h-[500px] w-[700px] -translate-x-1/2 rounded-full bg-lime-400/5 blur-[140px]" />
 
         <div className="relative mx-auto max-w-7xl">
-          
+
           <div className="max-w-3xl">
-            
+
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-lime-400/20 bg-lime-400/10 px-4 py-2 text-sm text-lime-300">
               <span className="h-2 w-2 rounded-full bg-lime-400" />
               Descubre dónde salir
@@ -81,7 +81,7 @@ export default async function Home() {
 
           {/* BUSCADOR */}
           <div className="mt-10 max-w-5xl rounded-3xl border border-white/10 bg-zinc-900/70 p-3 shadow-2xl backdrop-blur">
-            
+
             <div className="grid gap-2 md:grid-cols-[1.5fr_1fr_1fr_auto]">
 
               <div className="flex items-center gap-3 rounded-2xl bg-white/[0.04] px-5 py-4">
@@ -165,7 +165,7 @@ export default async function Home() {
       {/* CATEGORIAS */}
       <section className="px-5 py-10">
         <div className="mx-auto max-w-7xl">
-          
+
           <div className="mb-6 flex items-end justify-between">
             <div>
               <p className="text-sm font-medium text-lime-400">
@@ -217,7 +217,7 @@ export default async function Home() {
         <div className="mx-auto max-w-7xl">
 
           <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-            
+
             <div>
               <div className="flex items-center gap-2 text-sm font-medium text-lime-400">
                 <span className="h-2 w-2 rounded-full bg-lime-400" />
@@ -249,16 +249,16 @@ export default async function Home() {
                 venue.photos?.[0]?.image_url ??
                 "https://images.unsplash.com/photo-1566737236500-c8ac43014a67?auto=format&fit=crop&w=1200&q=80";
 
-              const generos = venue.venue_genres
+              const generos = (venue.venue_genres
                 ?.map((vg) => vg.genres?.nombre)
-                .filter(Boolean) as string[];
+                .filter(Boolean) ?? []) as string[];
 
               return (
                 <article
                   key={venue.id}
                   className="group overflow-hidden rounded-3xl border border-white/5 bg-zinc-900 transition duration-300 hover:-translate-y-1 hover:border-white/20"
                 >
-                  
+
                   {/* IMAGEN */}
                   <div className="relative h-64 overflow-hidden bg-zinc-800">
 
@@ -298,8 +298,7 @@ export default async function Home() {
                       {venue.nombre}
                     </h3>
 
-
-                    {generos && generos.length > 0 && (
+                    {generos.length > 0 && (
                       <div className="mt-4 flex flex-wrap gap-2">
                         {generos.map((genre) => (
                           <span
@@ -311,7 +310,6 @@ export default async function Home() {
                         ))}
                       </div>
                     )}
-
 
                     <div className="mt-5 border-t border-white/5 pt-4">
 
@@ -326,7 +324,6 @@ export default async function Home() {
                             {venue.precio_entrada ? `${venue.precio_entrada}€` : "Consultar"}
                           </p>
                         </div>
-
 
                         <div className="text-right">
                           <p className="text-xs text-zinc-500">
@@ -343,7 +340,7 @@ export default async function Home() {
                     </div>
 
                     {venue.instagram ? (
-                      
+                      <a
                         href={venue.instagram}
                         target="_blank"
                         className="mt-5 block w-full rounded-xl bg-white/[0.05] py-3 text-center text-sm font-medium text-white transition hover:bg-lime-400 hover:text-black"
