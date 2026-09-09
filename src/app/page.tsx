@@ -430,7 +430,7 @@ export default function Home() {
 
           <div className="flex gap-5">
             <a href="#">Instagram</a>
-            <a href="#">Contacto</a>
+            <a href="#">Contacto - Pablo Ribera</a>
           </div>
 
         </div>
