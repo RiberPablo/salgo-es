@@ -32,6 +32,23 @@ export default async function VenueDetailPage({
       )}`
     : null;
 
+  const tienePrecioMedioPersona =
+    venue.precio_persona_min !== null && venue.precio_persona_max !== null;
+
+  const formatoEntrada =
+    venue.precio_entrada === null
+      ? "Consultar"
+      : venue.precio_entrada === 0
+      ? "Gratis"
+      : `${venue.precio_entrada}€`;
+
+  const formatoCopa =
+    venue.precio_copa === null
+      ? "Consultar"
+      : venue.precio_copa === 0
+      ? "Gratis"
+      : `${venue.precio_copa}€`;
+
   return (
     <main className="min-h-screen bg-[#09090b] text-white">
       {/* HEADER */}
@@ -128,24 +145,24 @@ export default async function VenueDetailPage({
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <p className="text-xs text-zinc-500">Entrada</p>
-              <p className="mt-1 text-lg font-bold">
-                {venue.precio_entrada === null
-                  ? "Consultar"
-                  : venue.precio_entrada === 0
-                  ? "Gratis"
-                  : `${venue.precio_entrada}€`}
-              </p>
+              <p className="mt-1 text-lg font-bold">{formatoEntrada}</p>
             </div>
-            <div>
-              <p className="text-xs text-zinc-500">Copa</p>
-              <p className="mt-1 text-lg font-bold">
-                {venue.precio_copa === null
-                  ? "Consultar"
-                  : venue.precio_copa === 0
-                  ? "Gratis"
-                  : `${venue.precio_copa}€`}
-              </p>
-            </div>
+
+            {tienePrecioMedioPersona ? (
+              <div>
+                <p className="text-xs text-zinc-500">Precio medio/persona</p>
+                <p className="mt-1 text-lg font-bold">
+                  €{venue.precio_persona_min}-{venue.precio_persona_max}
+                </p>
+                <p className="mt-0.5 text-[11px] text-zinc-600">Según Google</p>
+              </div>
+            ) : (
+              <div>
+                <p className="text-xs text-zinc-500">Copa</p>
+                <p className="mt-1 text-lg font-bold">{formatoCopa}</p>
+              </div>
+            )}
+
             <div>
               <p className="text-xs text-zinc-500">Rango de edad</p>
               <p className="mt-1 font-medium">{venue.rango_edad ?? "Todas"}</p>
@@ -155,6 +172,12 @@ export default async function VenueDetailPage({
               <p className="mt-1 font-medium capitalize">{venue.vestimenta ?? "Casual"}</p>
             </div>
           </div>
+
+          {venue.precio_medio && !tienePrecioMedioPersona && (
+            <p className="mt-4 text-xs text-zinc-500">
+              Precio medio estimado: ~{venue.precio_medio}€ (sin confirmar por el local)
+            </p>
+          )}
 
           <div className="mt-6 flex flex-col gap-3">
             {mapsUrl && (

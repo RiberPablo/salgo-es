@@ -9,6 +9,8 @@ export type Venue = {
   precio_entrada: number | null;
   precio_copa: number | null;
   precio_medio: number | null;
+  precio_persona_min: number | null;
+  precio_persona_max: number | null;
   instagram: string | null;
   web: string | null;
   rango_edad: string | null;
@@ -22,7 +24,9 @@ export type Venue = {
 
 const VENUE_SELECT = `
   id, nombre, descripcion, direccion, tipo_local,
-  precio_entrada, precio_copa, precio_medio, instagram, web,
+  precio_entrada, precio_copa, precio_medio,
+  precio_persona_min, precio_persona_max,
+  instagram, web,
   rango_edad, vestimenta,
   zones ( nombre ),
   cities ( nombre ),
