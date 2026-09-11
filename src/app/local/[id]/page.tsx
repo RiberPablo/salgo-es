@@ -26,6 +26,12 @@ export default async function VenueDetailPage({
 
   const horarios = venue.schedules ?? [];
 
+  const mapsUrl = venue.direccion
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+        `${venue.direccion}, ${venue.cities?.nombre ?? ""}`
+      )}`
+    : null;
+
   return (
     <main className="min-h-screen bg-[#09090b] text-white">
       {/* HEADER */}
@@ -123,13 +129,21 @@ export default async function VenueDetailPage({
             <div>
               <p className="text-xs text-zinc-500">Entrada</p>
               <p className="mt-1 text-lg font-bold">
-                {venue.precio_entrada ? `${venue.precio_entrada}€` : "Consultar"}
+                {venue.precio_entrada === null
+                  ? "Consultar"
+                  : venue.precio_entrada === 0
+                  ? "Gratis"
+                  : `${venue.precio_entrada}€`}
               </p>
             </div>
             <div>
               <p className="text-xs text-zinc-500">Copa</p>
               <p className="mt-1 text-lg font-bold">
-                {venue.precio_copa ? `${venue.precio_copa}€` : "Consultar"}
+                {venue.precio_copa === null
+                  ? "Consultar"
+                  : venue.precio_copa === 0
+                  ? "Gratis"
+                  : `${venue.precio_copa}€`}
               </p>
             </div>
             <div>
@@ -143,6 +157,15 @@ export default async function VenueDetailPage({
           </div>
 
           <div className="mt-6 flex flex-col gap-3">
+            {mapsUrl && (
+              <a
+                href={mapsUrl}
+                target="_blank"
+                className="rounded-xl border border-white/10 py-3 text-center text-sm font-medium transition hover:bg-white hover:text-black"
+              >
+                Cómo llegar 📍
+              </a>
+            )}
             {venue.instagram && (
               <a
                 href={venue.instagram}
