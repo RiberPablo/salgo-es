@@ -150,13 +150,13 @@ export default async function CategoriaPage({
                           <div>
                             <p className="text-xs text-zinc-500">Entrada</p>
                             <p className="font-semibold text-white">
-                              {venue.precio_entrada ? `${venue.precio_entrada}€` : "Consultar"}
+                              {venue.precio_entrada != null ? `${venue.precio_entrada}€` : "Consultar"}
                             </p>
                           </div>
                           <div className="text-right">
                             <p className="text-xs text-zinc-500">Copa</p>
                             <p className="font-semibold text-white">
-                              {venue.precio_copa ? `${venue.precio_copa}€` : "Consultar"}
+                              {venue.precio_copa != null ? `${venue.precio_copa}€` : "Consultar"}
                             </p>
                           </div>
                         </div>

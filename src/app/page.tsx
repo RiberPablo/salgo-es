@@ -283,7 +283,7 @@ export default async function Home() {
                           </p>
 
                           <p className="font-semibold text-white">
-                            {venue.precio_entrada ? `${venue.precio_entrada}€` : "Consultar"}
+                            {venue.precio_entrada != null ? `${venue.precio_entrada}€` : "Consultar"}
                           </p>
                         </div>
 
@@ -293,7 +293,7 @@ export default async function Home() {
                           </p>
 
                           <p className="font-semibold text-white">
-                            {venue.precio_copa ? `${venue.precio_copa}€` : "Consultar"}
+                            {venue.precio_copa != null ? `${venue.precio_copa}€` : "Consultar"}
                           </p>
                         </div>
 
