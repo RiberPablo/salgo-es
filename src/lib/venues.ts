@@ -173,10 +173,13 @@ export async function searchVenues(params: SearchParams): Promise<VenueConDistan
   }
 
   if (dia != null) {
-    // Los horarios son recurrentes por dia de la semana (no por fecha concreta),
-    // asi que esto funciona igual si alguien planea un martes para el viernes
-    // que si busca el propio viernes.
-    query = query.eq("schedules.dia_semana", dia);
+    // "Salir un viernes" normalmente significa entrar sobre las 00:00, que en
+    // el calendario ya es sábado. Muchos locales guardan (o guardarán, cuando
+    // metamos datos reales) su horario bajo esa fecha real, no bajo el día
+    // en que la gente "sale". Para no depender de qué convención use cada
+    // local, miramos tanto el día elegido como el siguiente.
+    const diaSiguiente = (dia + 1) % 7;
+    query = query.in("schedules.dia_semana", [dia, diaSiguiente]);
   }
 
   const { data, error } = await query.order("nombre");
