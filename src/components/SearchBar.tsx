@@ -21,6 +21,15 @@ export function SearchBar() {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [ubicacionEstado, setUbicacionEstado] = useState<UbicacionEstado>("idle");
 
+  function irConUbicacion(nuevasCoords: { lat: number; lng: number }) {
+    const params = new URLSearchParams();
+    if (q.trim()) params.set("q", q.trim());
+    if (tipo) params.set("tipo", tipo);
+    params.set("lat", nuevasCoords.lat.toString());
+    params.set("lng", nuevasCoords.lng.toString());
+    router.push(`/buscar?${params.toString()}`);
+  }
+
   function handleCercaDeMi() {
     if (!navigator.geolocation) {
       setUbicacionEstado("error");
@@ -31,8 +40,10 @@ export function SearchBar() {
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        const nuevasCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setCoords(nuevasCoords);
         setUbicacionEstado("lista");
+        irConUbicacion(nuevasCoords);
       },
       () => {
         setUbicacionEstado("error");
