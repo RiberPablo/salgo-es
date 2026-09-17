@@ -369,7 +369,7 @@ export default async function Home() {
 
           <div className="flex gap-5">
             <a href="#">Instagram</a>
-            <a href="#">Contacto - Pablo Ribera</a>
+            <a href="#">Contacto - Pablo Riber S</a>
           </div>
 
         </div>
