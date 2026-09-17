@@ -15,6 +15,8 @@ export type Venue = {
   web: string | null;
   rango_edad: string | null;
   vestimenta: string | null;
+  latitud: number | null;
+  longitud: number | null;
   zones: { nombre: string } | null;
   cities: { nombre: string } | null;
   photos: { image_url: string; is_main: boolean }[];
@@ -22,18 +24,46 @@ export type Venue = {
   schedules?: { dia_semana: number; apertura: string | null; cierre: string | null }[];
 };
 
+// Un local con la distancia (en km) ya calculada respecto a la ubicación del usuario.
+// distanciaKm queda undefined si no pedimos ubicación o si el local aún no tiene lat/lng.
+export type VenueConDistancia = Venue & { distanciaKm?: number };
+
 const VENUE_SELECT = `
   id, nombre, descripcion, direccion, tipo_local,
   precio_entrada, precio_copa, precio_medio,
   precio_persona_min, precio_persona_max,
   instagram, web,
   rango_edad, vestimenta,
+  latitud, longitud,
   zones ( nombre ),
   cities ( nombre ),
   photos ( image_url, is_main ),
   venue_genres ( genres ( nombre ) ),
   schedules ( dia_semana, apertura, cierre )
 `;
+
+// Día de la semana (0 = domingo ... 6 = sábado) según la hora actual en Madrid,
+// para que "esta noche" no dependa de en qué zona horaria esté desplegado el servidor.
+function getMadridDayOfWeek(): number {
+  const madridDateStr = new Date().toLocaleString("en-US", { timeZone: "Europe/Madrid" });
+  return new Date(madridDateStr).getDay();
+}
+
+function toRad(deg: number) {
+  return (deg * Math.PI) / 180;
+}
+
+// Distancia en línea recta entre dos coordenadas (fórmula de Haversine), en kilómetros.
+function distanciaKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
 
 export async function getVenues(): Promise<Venue[]> {
   const { data, error } = await supabase
@@ -86,20 +116,33 @@ export async function getVenuesByTipo(tipoLocal: string): Promise<Venue[]> {
 export type SearchParams = {
   q?: string; // texto libre: busca en nombre y direccion
   tipo?: string; // valor singular en BD: discoteca | pub | tardeo | bar
-  genero?: string; // nombre del genero musical, ej: "Reggaeton"
+  genero?: string; // nombre exacto del genero musical tal cual está en BD, ej: "Reggaetón"
+  estaNoche?: boolean; // solo locales con horario de hoy que abren a las 00:00
+  lat?: number; // ubicación del usuario, para ordenar por cercanía
+  lng?: number;
 };
 
-export async function searchVenues(params: SearchParams): Promise<Venue[]> {
-  const { q, tipo, genero } = params;
+export async function searchVenues(params: SearchParams): Promise<VenueConDistancia[]> {
+  const { q, tipo, genero, estaNoche, lat, lng } = params;
 
-  // Si filtramos por genero necesitamos el inner join para que solo
-  // devuelva locales que SI tengan ese genero asociado.
-  const select = genero
-    ? VENUE_SELECT.replace(
-        "venue_genres ( genres ( nombre ) )",
-        "venue_genres!inner ( genres!inner ( nombre ) )"
-      )
-    : VENUE_SELECT;
+  let select = VENUE_SELECT;
+
+  // Si filtramos por genero o por "esta noche" necesitamos inner join para que
+  // solo devuelva locales que SI cumplen esa condición (si no, Supabase trae
+  // el local igual con la relación vacía).
+  if (genero) {
+    select = select.replace(
+      "venue_genres ( genres ( nombre ) )",
+      "venue_genres!inner ( genres!inner ( nombre ) )"
+    );
+  }
+
+  if (estaNoche) {
+    select = select.replace(
+      "schedules ( dia_semana, apertura, cierre )",
+      "schedules!inner ( dia_semana, apertura, cierre )"
+    );
+  }
 
   let query = supabase.from("venues").select(select).eq("activo", true);
 
@@ -116,6 +159,11 @@ export async function searchVenues(params: SearchParams): Promise<Venue[]> {
     query = query.ilike("venue_genres.genres.nombre", genero.trim());
   }
 
+  if (estaNoche) {
+    const hoy = getMadridDayOfWeek();
+    query = query.eq("schedules.dia_semana", hoy).eq("schedules.apertura", "00:00:00");
+  }
+
   const { data, error } = await query.order("nombre");
 
   if (error) {
@@ -123,5 +171,22 @@ export async function searchVenues(params: SearchParams): Promise<Venue[]> {
     return [];
   }
 
-  return data as unknown as Venue[];
+  let venues = data as unknown as VenueConDistancia[];
+
+  // Si el usuario compartió su ubicación, calculamos distancia y ordenamos
+  // por cercanía. Los locales sin lat/lng todavía se quedan al final, no se
+  // ocultan (así no desaparecen mientras vamos completando datos).
+  if (lat != null && lng != null) {
+    venues = venues.map((v) => ({
+      ...v,
+      distanciaKm:
+        v.latitud != null && v.longitud != null
+          ? distanciaKm(lat, lng, v.latitud, v.longitud)
+          : undefined,
+    }));
+
+    venues.sort((a, b) => (a.distanciaKm ?? Infinity) - (b.distanciaKm ?? Infinity));
+  }
+
+  return venues;
 }

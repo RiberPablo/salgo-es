@@ -11,18 +11,55 @@ const TIPOS = [
   { value: "bar", label: "Bares" },
 ];
 
+type UbicacionEstado = "idle" | "buscando" | "lista" | "error";
+
 export function SearchBar() {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [tipo, setTipo] = useState("");
   const [tipoAbierto, setTipoAbierto] = useState(false);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [ubicacionEstado, setUbicacionEstado] = useState<UbicacionEstado>("idle");
+
+  function handleCercaDeMi() {
+    if (!navigator.geolocation) {
+      setUbicacionEstado("error");
+      return;
+    }
+
+    setUbicacionEstado("buscando");
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setUbicacionEstado("lista");
+      },
+      () => {
+        setUbicacionEstado("error");
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
 
   function handleExplorar() {
     const params = new URLSearchParams();
     if (q.trim()) params.set("q", q.trim());
     if (tipo) params.set("tipo", tipo);
+    if (coords) {
+      params.set("lat", coords.lat.toString());
+      params.set("lng", coords.lng.toString());
+    }
     router.push(`/buscar?${params.toString()}`);
   }
+
+  const ubicacionLabel =
+    ubicacionEstado === "buscando"
+      ? "Buscando..."
+      : ubicacionEstado === "lista"
+      ? "Ubicación activada"
+      : ubicacionEstado === "error"
+      ? "No se pudo obtener"
+      : "Cerca de mí";
 
   return (
     <div className="mt-10 max-w-5xl rounded-3xl border border-white/10 bg-zinc-900/70 p-3 shadow-2xl backdrop-blur">
@@ -47,12 +84,13 @@ export function SearchBar() {
 
         <button
           type="button"
+          onClick={handleCercaDeMi}
           className="flex items-center gap-3 rounded-2xl px-5 py-4 text-left transition hover:bg-white/[0.04]"
         >
           <span className="text-xl">📍</span>
           <div>
             <p className="text-xs text-zinc-500">Ubicación</p>
-            <p className="text-sm font-medium">Cerca de mí</p>
+            <p className="text-sm font-medium">{ubicacionLabel}</p>
           </div>
         </button>
 

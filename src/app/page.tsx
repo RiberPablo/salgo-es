@@ -50,10 +50,6 @@ export default async function Home() {
               Pubs
             </a>
           </nav>
-
-          <button className="rounded-xl border border-white/10 px-4 py-2 text-sm text-zinc-300 transition hover:bg-white hover:text-black">
-            Entrar
-          </button>
         </div>
       </header>
 
@@ -92,31 +88,24 @@ export default async function Home() {
           {/* FILTROS RAPIDOS */}
           <div className="mt-5 flex flex-wrap gap-2">
             <a
-              href="/buscar"
+              href="/buscar?estaNoche=true"
               className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-zinc-400 transition hover:border-lime-400/40 hover:text-white"
             >
               Esta noche
             </a>
 
             <a
-              href="/buscar?genero=Reggaeton"
+              href="/buscar?genero=Reggaet%C3%B3n"
               className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-zinc-400 transition hover:border-lime-400/40 hover:text-white"
             >
-              🎵 Reggaeton
+              🎵 Reggaetón
             </a>
 
             <a
-              href="/buscar?genero=Electr%C3%B3nica"
+              href="/buscar?genero=M%C3%BAsica%20Latina"
               className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-zinc-400 transition hover:border-lime-400/40 hover:text-white"
             >
-              🎧 Electrónica
-            </a>
-
-            <a
-              href="/buscar?genero=Comercial"
-              className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-zinc-400 transition hover:border-lime-400/40 hover:text-white"
-            >
-              🎉 Comercial
+              🎶 Música Latina
             </a>
           </div>
 
@@ -283,7 +272,11 @@ export default async function Home() {
                           </p>
 
                           <p className="font-semibold text-white">
-                            {venue.precio_entrada != null ? `${venue.precio_entrada}€` : "Consultar"}
+                            {venue.precio_entrada === 0
+                              ? "Gratis"
+                              : venue.precio_entrada != null
+                              ? `${venue.precio_entrada}€`
+                              : "Consultar"}
                           </p>
                         </div>
 
@@ -293,7 +286,11 @@ export default async function Home() {
                           </p>
 
                           <p className="font-semibold text-white">
-                            {venue.precio_copa != null ? `${venue.precio_copa}€` : "Consultar"}
+                            {venue.precio_copa === 0
+                              ? "Gratis"
+                              : venue.precio_copa != null
+                              ? `${venue.precio_copa}€`
+                              : "Consultar"}
                           </p>
                         </div>
 
@@ -368,8 +365,12 @@ export default async function Home() {
           </p>
 
           <div className="flex gap-5">
-            <a href="#">Instagram</a>
-            <a href="#">Contacto - Pablo Riber S</a>
+            <a href="https://www.instagram.com/salgo_app" target="_blank" rel="noopener noreferrer">
+              Instagram
+            </a>
+            <a href="https://www.instagram.com/salgo_app" target="_blank" rel="noopener noreferrer">
+              Contacto - Pablo Ribera
+            </a>
           </div>
 
         </div>

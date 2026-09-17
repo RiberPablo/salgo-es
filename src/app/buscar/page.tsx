@@ -3,15 +3,32 @@ import { searchVenues } from "@/lib/venues";
 export default async function BuscarPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; tipo?: string; genero?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    tipo?: string;
+    genero?: string;
+    estaNoche?: string;
+    lat?: string;
+    lng?: string;
+  }>;
 }) {
-  const { q, tipo, genero } = await searchParams;
-  const venues = await searchVenues({ q, tipo, genero });
+  const { q, tipo, genero, estaNoche, lat, lng } = await searchParams;
+
+  const venues = await searchVenues({
+    q,
+    tipo,
+    genero,
+    estaNoche: estaNoche === "true",
+    lat: lat ? Number(lat) : undefined,
+    lng: lng ? Number(lng) : undefined,
+  });
 
   const etiquetas: string[] = [];
   if (q) etiquetas.push(`"${q}"`);
   if (tipo) etiquetas.push(tipo);
   if (genero) etiquetas.push(genero);
+  if (estaNoche === "true") etiquetas.push("Esta noche");
+  if (lat && lng) etiquetas.push("Cerca de ti");
 
   return (
     <main className="min-h-screen bg-[#09090b] text-white">
@@ -99,6 +116,15 @@ export default async function BuscarPage({
                     <div className="p-5">
                       <h3 className="text-lg font-bold">{venue.nombre}</h3>
 
+                      {venue.distanciaKm != null && (
+                        <p className="mt-1 text-xs text-lime-400">
+                          📍 a{" "}
+                          {venue.distanciaKm < 1
+                            ? `${Math.round(venue.distanciaKm * 1000)} m`
+                            : `${venue.distanciaKm.toFixed(1)} km`}
+                        </p>
+                      )}
+
                       {generos.length > 0 && (
                         <div className="mt-4 flex flex-wrap gap-2">
                           {generos.map((g) => (
@@ -117,13 +143,21 @@ export default async function BuscarPage({
                           <div>
                             <p className="text-xs text-zinc-500">Entrada</p>
                             <p className="font-semibold text-white">
-                              {venue.precio_entrada != null ? `${venue.precio_entrada}€` : "Consultar"}
+                              {venue.precio_entrada === 0
+                                ? "Gratis"
+                                : venue.precio_entrada != null
+                                ? `${venue.precio_entrada}€`
+                                : "Consultar"}
                             </p>
                           </div>
                           <div className="text-right">
                             <p className="text-xs text-zinc-500">Copa</p>
                             <p className="font-semibold text-white">
-                              {venue.precio_copa != null ? `${venue.precio_copa}€` : "Consultar"}
+                              {venue.precio_copa === 0
+                                ? "Gratis"
+                                : venue.precio_copa != null
+                                ? `${venue.precio_copa}€`
+                                : "Consultar"}
                             </p>
                           </div>
                         </div>
