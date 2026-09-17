@@ -28,6 +28,19 @@ export type Venue = {
 // distanciaKm queda undefined si no pedimos ubicación o si el local aún no tiene lat/lng.
 export type VenueConDistancia = Venue & { distanciaKm?: number };
 
+// Un evento puntual (fecha concreta), distinto de schedules que es horario recurrente semanal.
+export type Evento = {
+  id: string;
+  nombre: string;
+  descripcion: string | null;
+  fecha_inicio: string;
+  fecha_fin: string | null;
+  precio_desde: number | null;
+  foto_url: string | null;
+  entrada_url: string | null;
+  venues: { id: string; nombre: string; zones: { nombre: string } | null; cities: { nombre: string } | null } | null;
+};
+
 const VENUE_SELECT = `
   id, nombre, descripcion, direccion, tipo_local,
   precio_entrada, precio_copa, precio_medio,
@@ -191,4 +204,28 @@ export async function searchVenues(params: SearchParams): Promise<VenueConDistan
   }
 
   return venues;
+}
+
+// Eventos puntuales que todavía no han pasado (conciertos, fiestas especiales...),
+// ordenados por fecha más próxima primero. A diferencia de "dia" en searchVenues,
+// esto usa fecha real, así que sirve igual si el evento es mañana o dentro de un mes.
+export async function getUpcomingEvents(limit = 6): Promise<Evento[]> {
+  const { data, error } = await supabase
+    .from("events")
+    .select(
+      `
+      id, nombre, descripcion, fecha_inicio, fecha_fin, precio_desde, foto_url, entrada_url,
+      venues ( id, nombre, zones ( nombre ), cities ( nombre ) )
+    `
+    )
+    .gte("fecha_inicio", new Date().toISOString())
+    .order("fecha_inicio", { ascending: true })
+    .limit(limit);
+
+  if (error) {
+    console.error("Error cargando eventos:", error.message);
+    return [];
+  }
+
+  return data as unknown as Evento[];
 }

@@ -1,9 +1,10 @@
-import { getVenues, getMadridDayOfWeek } from "@/lib/venues";
+import { getVenues, getUpcomingEvents, getMadridDayOfWeek } from "@/lib/venues";
 import { SearchBar } from "@/components/SearchBar";
 import { PlanSelector } from "@/components/PlanSelector";
 
 export default async function Home() {
   const venues = await getVenues();
+  const eventos = await getUpcomingEvents();
 
   const countByTipo = (tipo: string) =>
     venues.filter((v) => v.tipo_local?.toLowerCase() === tipo).length;
@@ -42,6 +43,9 @@ export default async function Home() {
             </a>
             <a href="/categoria/pubs" className="transition hover:text-white">
               Pubs
+            </a>
+            <a href="/eventos" className="transition hover:text-white">
+              Eventos
             </a>
           </nav>
         </div>
@@ -134,6 +138,105 @@ export default async function Home() {
 
         </div>
       </section>
+
+
+      {/* PROXIMOS EVENTOS */}
+      {eventos.length > 0 && (
+        <section className="px-5 py-10">
+          <div className="mx-auto max-w-7xl">
+
+            <div className="mb-6 flex items-end justify-between">
+              <div>
+                <p className="text-sm font-medium text-lime-400">
+                  FECHA CONCRETA
+                </p>
+
+                <h2 className="mt-1 text-3xl font-bold">
+                  Próximos eventos
+                </h2>
+
+                <p className="mt-2 text-zinc-500">
+                  Conciertos y fiestas especiales, con día fijo — no dependen del horario habitual del local.
+                </p>
+              </div>
+
+              <a
+                href="/eventos"
+                className="w-fit rounded-xl border border-white/10 px-4 py-2 text-sm text-zinc-300 transition hover:bg-white hover:text-black"
+              >
+                Ver todos →
+              </a>
+            </div>
+
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {eventos.map((evento) => {
+                const fecha = new Date(evento.fecha_inicio);
+                const fechaLabel = fecha.toLocaleDateString("es-ES", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                  timeZone: "Europe/Madrid",
+                });
+                const horaLabel = fecha.toLocaleTimeString("es-ES", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  timeZone: "Europe/Madrid",
+                });
+
+                return (
+                  <a
+                    key={evento.id}
+                    href={evento.venues ? `/local/${evento.venues.id}` : "#"}
+                    className="group block overflow-hidden rounded-3xl border border-white/5 bg-zinc-900 transition duration-300 hover:-translate-y-1 hover:border-lime-400/40"
+                  >
+                    <div className="relative h-48 overflow-hidden bg-zinc-800">
+                      <img
+                        src={
+                          evento.foto_url ??
+                          "https://images.unsplash.com/photo-1566737236500-c8ac43014a67?auto=format&fit=crop&w=1200&q=80"
+                        }
+                        alt={evento.nombre}
+                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                      <div className="absolute left-4 top-4 rounded-full bg-lime-400 px-3 py-1.5 text-xs font-bold capitalize text-black">
+                        {fechaLabel} · {horaLabel}
+                      </div>
+                    </div>
+
+                    <div className="p-5">
+                      <h3 className="text-lg font-bold">{evento.nombre}</h3>
+
+                      {evento.venues && (
+                        <p className="mt-1 text-sm text-zinc-500">
+                          📍 {evento.venues.nombre}
+                          {evento.venues.zones ? ` · ${evento.venues.zones.nombre}` : ""}
+                        </p>
+                      )}
+
+                      <div className="mt-4 flex items-center justify-between border-t border-white/5 pt-4 text-sm">
+                        <div>
+                          <p className="text-xs text-zinc-500">Desde</p>
+                          <p className="font-semibold text-white">
+                            {evento.precio_desde != null ? `${evento.precio_desde}€` : "Consultar"}
+                          </p>
+                        </div>
+
+                        {evento.entrada_url && (
+                          <span className="rounded-xl bg-white/[0.05] px-4 py-2 text-xs font-medium text-white transition group-hover:bg-lime-400 group-hover:text-black">
+                            Entradas →
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+
+          </div>
+        </section>
+      )}
 
 
       {/* CERCA DE TI */}

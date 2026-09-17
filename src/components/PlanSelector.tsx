@@ -43,13 +43,15 @@ type PlanSelectorProps = {
 export function PlanSelector({ counts }: PlanSelectorProps) {
   const router = useRouter();
   const hoy = getDayOfWeek();
-  const manana = (hoy + 1) % 7;
 
+  // Nombres de día reales en vez de relativos ("mañana" es confuso: un jueves
+  // "mañana" es viernes pero no lo dice). Si "Hoy" coincide con uno de los
+  // días fuertes, no lo repetimos dos veces.
   const opcionesDia = [
     { label: "Hoy", valor: hoy },
-    { label: "Mañana", valor: manana },
     { label: "Viernes", valor: 5 },
     { label: "Sábado", valor: 6 },
+    { label: "Domingo", valor: 0 },
   ].filter(
     (d, i, arr) => arr.findIndex((x) => x.valor === d.valor) === i
   );
