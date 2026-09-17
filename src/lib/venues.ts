@@ -43,8 +43,8 @@ const VENUE_SELECT = `
 `;
 
 // Día de la semana (0 = domingo ... 6 = sábado) según la hora actual en Madrid,
-// para que "esta noche" no dependa de en qué zona horaria esté desplegado el servidor.
-function getMadridDayOfWeek(): number {
+// para que "hoy" no dependa de en qué zona horaria esté desplegado el servidor.
+export function getMadridDayOfWeek(): number {
   const madridDateStr = new Date().toLocaleString("en-US", { timeZone: "Europe/Madrid" });
   return new Date(madridDateStr).getDay();
 }
@@ -117,17 +117,17 @@ export type SearchParams = {
   q?: string; // texto libre: busca en nombre y direccion
   tipo?: string; // valor singular en BD: discoteca | pub | tardeo | bar
   genero?: string; // nombre exacto del genero musical tal cual está en BD, ej: "Reggaetón"
-  estaNoche?: boolean; // solo locales con horario de hoy que abren a las 00:00
+  dia?: number; // dia de la semana elegido por el usuario (0=domingo...6=sabado), no tiene que ser hoy
   lat?: number; // ubicación del usuario, para ordenar por cercanía
   lng?: number;
 };
 
 export async function searchVenues(params: SearchParams): Promise<VenueConDistancia[]> {
-  const { q, tipo, genero, estaNoche, lat, lng } = params;
+  const { q, tipo, genero, dia, lat, lng } = params;
 
   let select = VENUE_SELECT;
 
-  // Si filtramos por genero o por "esta noche" necesitamos inner join para que
+  // Si filtramos por genero o por dia necesitamos inner join para que
   // solo devuelva locales que SI cumplen esa condición (si no, Supabase trae
   // el local igual con la relación vacía).
   if (genero) {
@@ -137,7 +137,7 @@ export async function searchVenues(params: SearchParams): Promise<VenueConDistan
     );
   }
 
-  if (estaNoche) {
+  if (dia != null) {
     select = select.replace(
       "schedules ( dia_semana, apertura, cierre )",
       "schedules!inner ( dia_semana, apertura, cierre )"
@@ -159,9 +159,11 @@ export async function searchVenues(params: SearchParams): Promise<VenueConDistan
     query = query.ilike("venue_genres.genres.nombre", genero.trim());
   }
 
-  if (estaNoche) {
-    const hoy = getMadridDayOfWeek();
-    query = query.eq("schedules.dia_semana", hoy).eq("schedules.apertura", "00:00:00");
+  if (dia != null) {
+    // Los horarios son recurrentes por dia de la semana (no por fecha concreta),
+    // asi que esto funciona igual si alguien planea un martes para el viernes
+    // que si busca el propio viernes.
+    query = query.eq("schedules.dia_semana", dia);
   }
 
   const { data, error } = await query.order("nombre");

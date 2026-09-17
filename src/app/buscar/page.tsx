@@ -1,5 +1,7 @@
 import { searchVenues } from "@/lib/venues";
 
+const DIAS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+
 export default async function BuscarPage({
   searchParams,
 }: {
@@ -7,18 +9,19 @@ export default async function BuscarPage({
     q?: string;
     tipo?: string;
     genero?: string;
-    estaNoche?: string;
+    dia?: string;
     lat?: string;
     lng?: string;
   }>;
 }) {
-  const { q, tipo, genero, estaNoche, lat, lng } = await searchParams;
+  const { q, tipo, genero, dia, lat, lng } = await searchParams;
+  const diaNum = dia != null && dia !== "" ? Number(dia) : undefined;
 
   const venues = await searchVenues({
     q,
     tipo,
     genero,
-    estaNoche: estaNoche === "true",
+    dia: diaNum,
     lat: lat ? Number(lat) : undefined,
     lng: lng ? Number(lng) : undefined,
   });
@@ -27,7 +30,7 @@ export default async function BuscarPage({
   if (q) etiquetas.push(`"${q}"`);
   if (tipo) etiquetas.push(tipo);
   if (genero) etiquetas.push(genero);
-  if (estaNoche === "true") etiquetas.push("Esta noche");
+  if (diaNum != null) etiquetas.push(DIAS[diaNum]);
   if (lat && lng) etiquetas.push("Cerca de ti");
 
   return (

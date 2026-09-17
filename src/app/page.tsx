@@ -1,18 +1,12 @@
-import { getVenues } from "@/lib/venues";
+import { getVenues, getMadridDayOfWeek } from "@/lib/venues";
 import { SearchBar } from "@/components/SearchBar";
+import { PlanSelector } from "@/components/PlanSelector";
 
 export default async function Home() {
   const venues = await getVenues();
 
   const countByTipo = (tipo: string) =>
     venues.filter((v) => v.tipo_local?.toLowerCase() === tipo).length;
-
-  const categories = [
-    { icon: "🪩", name: "Discotecas", count: `${countByTipo("discoteca")} sitios`, slug: "discotecas" },
-    { icon: "🍸", name: "Pubs", count: `${countByTipo("pub")} sitios`, slug: "pubs" },
-    { icon: "🍹", name: "Tardeos", count: `${countByTipo("tardeo")} sitios`, slug: "tardeos" },
-    { icon: "🍺", name: "Bares", count: `${countByTipo("bar")} sitios`, slug: "bares" },
-  ];
 
   // En la home solo destacamos un puñado: priorizamos los que ya tienen foto real subida
   const conFoto = venues.filter((v) => v.photos && v.photos.length > 0);
@@ -88,7 +82,7 @@ export default async function Home() {
           {/* FILTROS RAPIDOS */}
           <div className="mt-5 flex flex-wrap gap-2">
             <a
-              href="/buscar?estaNoche=true"
+              href={`/buscar?dia=${getMadridDayOfWeek()}`}
               className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-zinc-400 transition hover:border-lime-400/40 hover:text-white"
             >
               Esta noche
@@ -124,37 +118,19 @@ export default async function Home() {
               </p>
 
               <h2 className="mt-1 text-3xl font-bold">
-                ¿Qué te apetece hoy?
+                ¿Qué te apetece?
               </h2>
             </div>
           </div>
 
-
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            {categories.map((category) => (
-              <a
-                key={category.name}
-                href={`/categoria/${category.slug}`}
-                className="group rounded-3xl border border-white/5 bg-zinc-900 p-5 text-left transition duration-300 hover:-translate-y-1 hover:border-lime-400/40 hover:bg-zinc-800"
-              >
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.05] text-2xl transition group-hover:bg-lime-400">
-                  {category.icon}
-                </div>
-
-                <h3 className="mt-8 text-lg font-bold">
-                  {category.name}
-                </h3>
-
-                <p className="mt-1 text-sm text-zinc-500">
-                  {category.count}
-                </p>
-
-                <div className="mt-5 text-lime-400">
-                  →
-                </div>
-              </a>
-            ))}
-          </div>
+          <PlanSelector
+            counts={{
+              discoteca: countByTipo("discoteca"),
+              pub: countByTipo("pub"),
+              tardeo: countByTipo("tardeo"),
+              bar: countByTipo("bar"),
+            }}
+          />
 
         </div>
       </section>
