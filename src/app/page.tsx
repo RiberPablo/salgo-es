@@ -205,9 +205,10 @@ export default async function Home() {
                 .filter(Boolean) ?? []) as string[];
 
               return (
-                <article
+                <a
                   key={venue.id}
-                  className="group overflow-hidden rounded-3xl border border-white/5 bg-zinc-900 transition duration-300 hover:-translate-y-1 hover:border-white/20"
+                  href={`/local/${venue.id}`}
+                  className="group block overflow-hidden rounded-3xl border border-white/5 bg-zinc-900 transition duration-300 hover:-translate-y-1 hover:border-white/20"
                 >
 
                   {/* IMAGEN */}
@@ -224,10 +225,6 @@ export default async function Home() {
                     <div className="absolute left-4 top-4 rounded-full bg-black/50 px-3 py-1.5 text-xs font-medium capitalize text-white backdrop-blur">
                       {venue.tipo_local ?? "Local"}
                     </div>
-
-                    <button className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur transition hover:bg-white hover:text-black">
-                      ♡
-                    </button>
 
                     <div className="absolute bottom-4 left-4">
                       <p className="text-sm text-zinc-300">
@@ -298,16 +295,9 @@ export default async function Home() {
 
                     </div>
 
-                    <a
-                      href={`/local/${venue.id}`}
-                      className="mt-5 block w-full rounded-xl bg-white/[0.05] py-3 text-center text-sm font-medium text-white transition hover:bg-lime-400 hover:text-black"
-                    >
-                      Ver local
-                    </a>
-
                   </div>
 
-                </article>
+                </a>
               );
             })}
 
@@ -335,7 +325,7 @@ export default async function Home() {
             </p>
 
             <a
-              href="/categoria/discotecas"
+              href="/buscar"
               className="mt-7 inline-block rounded-xl bg-lime-400 px-6 py-3 font-bold text-black transition hover:bg-lime-300"
             >
               Explorar locales →
