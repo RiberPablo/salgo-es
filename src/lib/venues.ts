@@ -23,7 +23,7 @@ export type VenueEvent = {
 };
 
 export type EventoConLocal = VenueEvent & {
-  venues: { id: string; nombre: string } | null;
+  venues: { id: string; nombre: string; zones: { nombre: string } | null } | null;
 };
 
 export type Venue = {
@@ -111,15 +111,24 @@ export async function getVenuesByTipo(tipoLocal: string): Promise<Venue[]> {
   return todos.filter((v) => venueTipos(v).includes(t));
 }
 
-// Eventos puntuales de hoy en adelante, de cualquier local
-export async function getUpcomingEvents(): Promise<EventoConLocal[]> {
-  const { data, error } = await supabase
+// Eventos puntuales de hoy en adelante, de cualquier local.
+// limit es opcional: sin él, trae todos los que haya.
+export async function getUpcomingEvents(
+  limit?: number
+): Promise<EventoConLocal[]> {
+  let query = supabase
     .from("events")
     .select(
-      "id, nombre, descripcion, fecha_inicio, fecha_fin, precio_desde, foto_url, entrada_url, venues ( id, nombre )"
+      "id, nombre, descripcion, fecha_inicio, fecha_fin, precio_desde, foto_url, entrada_url, venues ( id, nombre, zones ( nombre ) )"
     )
     .gte("fecha_inicio", `${madridNow().fecha}T00:00:00`)
     .order("fecha_inicio");
+
+  if (limit) {
+    query = query.limit(limit);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("Error cargando eventos:", error.message);

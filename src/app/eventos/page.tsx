@@ -1,4 +1,5 @@
 import { getUpcomingEvents } from "@/lib/venues";
+import { formatFecha, formatHora } from "@/lib/utils";
 
 export default async function EventosPage() {
   const eventos = await getUpcomingEvents(50);
@@ -52,18 +53,8 @@ export default async function EventosPage() {
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {eventos.map((evento) => {
-                const fecha = new Date(evento.fecha_inicio);
-                const fechaLabel = fecha.toLocaleDateString("es-ES", {
-                  weekday: "long",
-                  day: "numeric",
-                  month: "long",
-                  timeZone: "Europe/Madrid",
-                });
-                const horaLabel = fecha.toLocaleTimeString("es-ES", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  timeZone: "Europe/Madrid",
-                });
+                const fechaLabel = formatFecha(evento.fecha_inicio);
+                const horaLabel = formatHora(evento.fecha_inicio);
 
                 return (
                   <a
@@ -77,7 +68,7 @@ export default async function EventosPage() {
                           evento.foto_url ??
                           "https://images.unsplash.com/photo-1566737236500-c8ac43014a67?auto=format&fit=crop&w=1200&q=80"
                         }
-                        alt={evento.nombre}
+                        alt={evento.nombre ?? "Evento"}
                         className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
@@ -92,7 +83,9 @@ export default async function EventosPage() {
                       {evento.venues && (
                         <p className="mt-1 text-sm text-zinc-500">
                           📍 {evento.venues.nombre}
-                          {evento.venues.zones ? ` · ${evento.venues.zones.nombre}` : ""}
+                          {evento.venues.zones
+                            ? ` · ${evento.venues.zones.nombre}`
+                            : ""}
                         </p>
                       )}
 
@@ -100,7 +93,9 @@ export default async function EventosPage() {
                         <div>
                           <p className="text-xs text-zinc-500">Desde</p>
                           <p className="font-semibold text-white">
-                            {evento.precio_desde != null ? `${evento.precio_desde}€` : "Consultar"}
+                            {evento.precio_desde != null
+                              ? `${evento.precio_desde}€`
+                              : "Consultar"}
                           </p>
                         </div>
 
