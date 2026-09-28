@@ -166,8 +166,25 @@ export function nocheActual(): { dia: number; fecha: string } {
   return { dia: n.dow, fecha: n.fecha };
 }
 
+// Dia de la semana (0=domingo...6=sabado, igual que dia_semana en BD)
+// a partir de una fecha "YYYY-MM-DD..." guardada tal cual, sin lios de zona horaria.
+function diaSemanaDe(fecha: string | null | undefined): number | null {
+  const m = (fecha ?? "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return null;
+  return new Date(
+    Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+  ).getUTCDay();
+}
+
+// Abre ese día de la semana, ya sea por horario fijo o porque tiene algún
+// evento puntual que cae en ese día (ej. una fiesta como LaVainaBailable,
+// que no tiene horario fijo pero siempre publica sus fechas en sábado).
 export function abreEnDia(v: Venue, dia: number): boolean {
-  return (v.schedules ?? []).some((s) => s.dia_semana === dia);
+  const porHorario = (v.schedules ?? []).some((s) => s.dia_semana === dia);
+  const porEvento = (v.events ?? []).some(
+    (e) => diaSemanaDe(e.fecha_inicio) === dia
+  );
+  return porHorario || porEvento;
 }
 
 // Abre esta noche por horario semanal, o tiene un evento puntual hoy
