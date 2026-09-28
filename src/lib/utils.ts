@@ -34,20 +34,40 @@ export function tipoInfo(tipo: string | null | undefined) {
   return CATEGORIAS.find((c) => c.tipo === t);
 }
 
-// Tipo principal + tipos secundarios (ej. tardeo + pub) + "tardeo" si el
-// local tiene algún horario marcado como tarde (aunque el tardeo en sí sea
-// obra de una fiesta/promotor distinto, si pasa en este local cuenta).
+// Hora de inicio (0-23) de una fecha "YYYY-MM-DDTHH:MM..." guardada tal
+// cual, sin conversiones de zona horaria.
+function horaDe(fecha: string | null | undefined): number | null {
+  const m = (fecha ?? "").match(/T(\d{2}):|(?:^|\s)(\d{2}):\d{2}(?::|$)/);
+  const h = m ? Number(m[1] ?? m[2]) : NaN;
+  return Number.isFinite(h) ? h : null;
+}
+
+// Una tardeo empieza a mediodía o por la tarde, nunca a la 1 de la
+// madrugada: 00:00-11:59 es "sigue siendo de madrugada/mañana", no tardeo.
+function esHoraDeTardeo(hora: number | null): boolean {
+  return hora !== null && hora >= 12 && hora < 21;
+}
+
+// Tipo principal + tipos secundarios (ej. tardeo + pub) + "tardeo" cuando el
+// local tiene algún horario u evento que empieza por la tarde — aunque el
+// tardeo en sí sea obra de una fiesta/promotor distinto, si pasa aquí cuenta.
 export function venueTipos(
   v: Pick<Venue, "tipo_local" | "tipos_secundarios"> & {
-    schedules?: { tipo: string | null }[];
+    schedules?: { tipo: string | null; apertura?: string | null }[];
+    events?: { fecha_inicio: string | null }[];
   }
 ): string[] {
   const todos = [v.tipo_local, ...(v.tipos_secundarios ?? [])].filter(
     Boolean
   ) as string[];
 
-  const haceTardeo = (v.schedules ?? []).some((h) => h.tipo === "tarde");
-  if (haceTardeo) todos.push("tardeo");
+  const porHorario = (v.schedules ?? []).some(
+    (h) => h.tipo === "tarde" || esHoraDeTardeo(horaDe(h.apertura))
+  );
+  const porEvento = (v.events ?? []).some((e) =>
+    esHoraDeTardeo(horaDe(e.fecha_inicio))
+  );
+  if (porHorario || porEvento) todos.push("tardeo");
 
   return Array.from(new Set(todos.map((t) => t.toLowerCase())));
 }
