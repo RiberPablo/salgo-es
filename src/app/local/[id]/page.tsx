@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getVenueById } from "@/lib/venues";
 import {
-  DIAS,
   TIPO_GRADIENTE,
   abreHoy,
   agruparHorarios,
@@ -10,12 +9,13 @@ import {
   formatFecha,
   formatHora,
   formatPrecio,
+  haceTardeoAdemas,
   hhmm,
   madridNow,
   num,
   tipoInfo,
+  tiposPrincipales,
   venueFoto,
-  venueTipos,
 } from "@/lib/utils";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -40,7 +40,8 @@ export default async function VenueDetailPage({
 
   const foto = venueFoto(venue);
   const fotos = venue.photos ?? [];
-  const tipos = venueTipos(venue);
+  const tipos = tiposPrincipales(venue);
+  const tardeoAdemas = haceTardeoAdemas(venue);
   const principal = tipoInfo(tipos[0]);
   const abre = abreHoy(venue);
   const edad = edadLabel(venue.rango_edad);
@@ -104,6 +105,11 @@ export default async function VenueDetailPage({
                 {t}
               </span>
             ))}
+            {tardeoAdemas && (
+              <span className="rounded-full border border-amber-300/40 bg-amber-400/15 px-3 py-1 text-xs font-bold text-amber-200">
+                🌇 Tarde y noche
+              </span>
+            )}
             {abre && (
               <span className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-bold text-black">
                 <span className="h-1.5 w-1.5 rounded-full bg-lime-500" />
@@ -171,12 +177,10 @@ export default async function VenueDetailPage({
                     <div className="divide-y divide-white/5 rounded-2xl border border-white/5">
                       {grupo.horarios.map((h) => (
                         <div
-                          key={`${grupo.tipo}-${h.dia_semana}`}
+                          key={`${grupo.tipo}-${h.etiqueta}`}
                           className="flex justify-between px-4 py-3 text-sm"
                         >
-                          <span className="text-zinc-400">
-                            {DIAS[h.dia_semana]}
-                          </span>
+                          <span className="text-zinc-400">{h.etiqueta}</span>
                           <span className="font-medium">
                             {h.apertura && h.cierre
                               ? `${hhmm(h.apertura)} - ${hhmm(h.cierre)}`

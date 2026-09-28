@@ -5,11 +5,12 @@ import {
   abreHoy,
   edadLabel,
   formatPrecio,
+  haceTardeoAdemas,
   nocheActual,
   num,
   tipoInfo,
+  tiposPrincipales,
   venueFoto,
-  venueTipos,
 } from "@/lib/utils";
 
 export function VenueCard({
@@ -20,7 +21,8 @@ export function VenueCard({
   noche?: { dia: number; fecha: string };
 }) {
   const foto = venueFoto(venue);
-  const tipos = venueTipos(venue);
+  const tipos = tiposPrincipales(venue);
+  const tardeoAdemas = haceTardeoAdemas(venue);
   const principal = tipoInfo(tipos[0]);
   const generos = (venue.venue_genres ?? [])
     .map((vg) => vg.genres?.nombre)
@@ -74,6 +76,11 @@ export function VenueCard({
               {t}
             </span>
           ))}
+          {tardeoAdemas && (
+            <span className="rounded-full border border-amber-300/40 bg-amber-400/15 px-3 py-1 text-xs font-medium text-amber-200 backdrop-blur">
+              🌇 Tarde y noche
+            </span>
+          )}
         </div>
 
         {abre && (

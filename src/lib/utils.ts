@@ -48,18 +48,29 @@ function esHoraDeTardeo(hora: number | null): boolean {
   return hora !== null && hora >= 12 && hora < 21;
 }
 
-// Tipo principal + tipos secundarios (ej. tardeo + pub) + "tardeo" cuando el
-// local tiene algún horario u evento que empieza por la tarde — aunque el
-// tardeo en sí sea obra de una fiesta/promotor distinto, si pasa aquí cuenta.
+// Solo el tipo "de verdad" del local (lo que es), sin deducir nada de sus
+// horarios. Esto es lo que se muestra como insignia de tipo en las tarjetas.
+export function tiposPrincipales(
+  v: Pick<Venue, "tipo_local" | "tipos_secundarios">
+): string[] {
+  const todos = [v.tipo_local, ...(v.tipos_secundarios ?? [])].filter(
+    Boolean
+  ) as string[];
+  return Array.from(new Set(todos.map((t) => t.toLowerCase())));
+}
+
+// Tipo principal + tipos secundarios + "tardeo" cuando el local tiene algún
+// horario u evento que empieza por la tarde — aunque el tardeo en sí sea obra
+// de una fiesta/promotor distinto, si pasa aquí cuenta. Se usa para FILTRAR
+// (categoría, buscador); para mostrar insignias en una tarjeta usa
+// tiposPrincipales() + haceTardeoAdemas(), que lo separan visualmente.
 export function venueTipos(
   v: Pick<Venue, "tipo_local" | "tipos_secundarios"> & {
     schedules?: { tipo: string | null; apertura?: string | null }[];
     events?: { fecha_inicio: string | null }[];
   }
 ): string[] {
-  const todos = [v.tipo_local, ...(v.tipos_secundarios ?? [])].filter(
-    Boolean
-  ) as string[];
+  const todos = tiposPrincipales(v);
 
   const porHorario = (v.schedules ?? []).some(
     (h) => h.tipo === "tarde" || esHoraDeTardeo(horaDe(h.apertura))
@@ -69,7 +80,17 @@ export function venueTipos(
   );
   if (porHorario || porEvento) todos.push("tardeo");
 
-  return Array.from(new Set(todos.map((t) => t.toLowerCase())));
+  return Array.from(new Set(todos));
+}
+
+// True cuando el local hace tardeo pero NO es su tipo principal (ej. Fitz:
+// discoteca que además tiene tardeo de sábado con otro promotor). Para estos
+// casos no tiene sentido mostrar "Discoteca" y "Tardeo" como si fueran dos
+// tipos iguales — mejor una indicación de "tarde y noche" aparte.
+export function haceTardeoAdemas(
+  v: Parameters<typeof venueTipos>[0]
+): boolean {
+  return venueTipos(v).includes("tardeo") && !tiposPrincipales(v).includes("tardeo");
 }
 
 /* ------------------------------------------------------------------ */
@@ -283,10 +304,63 @@ export const TIPO_HORARIO_LABEL: Record<string, string> = {
 
 // Agrupa los horarios por tipo (tardeo/noche) y ordena cada grupo de
 // lunes a domingo (en BD 0 = domingo, así que lo llevamos al final).
+const DIA_CORTO: Record<number, string> = {
+  0: "Dom",
+  1: "Lun",
+  2: "Mar",
+  3: "Mié",
+  4: "Jue",
+  5: "Vie",
+  6: "Sáb",
+};
+
+const ORDEN_SEMANA = (dia: number) => (dia + 6) % 7; // lunes=0 ... domingo=6
+
+// Une días seguidos con la misma franja horaria en un solo bloque, para no
+// repetir "00:00 - 06:00" siete veces cuando el horario es igual toda la
+// semana. "Lun, Mar, Mié" con la misma hora -> un bloque "Lun - Mié".
+export function compactarHorarios(
+  horarios: { dia_semana: number; apertura: string | null; cierre: string | null }[]
+) {
+  const ordenados = [...horarios].sort(
+    (a, b) => ORDEN_SEMANA(a.dia_semana) - ORDEN_SEMANA(b.dia_semana)
+  );
+
+  const bloques: {
+    dias: number[];
+    apertura: string | null;
+    cierre: string | null;
+  }[] = [];
+
+  for (const h of ordenados) {
+    const ultimo = bloques[bloques.length - 1];
+    const mismaFranja =
+      !!ultimo && ultimo.apertura === h.apertura && ultimo.cierre === h.cierre;
+    const esConsecutivo =
+      !!ultimo &&
+      ORDEN_SEMANA(h.dia_semana) ===
+        ORDEN_SEMANA(ultimo.dias[ultimo.dias.length - 1]) + 1;
+
+    if (ultimo && mismaFranja && esConsecutivo) {
+      ultimo.dias.push(h.dia_semana);
+    } else {
+      bloques.push({ dias: [h.dia_semana], apertura: h.apertura, cierre: h.cierre });
+    }
+  }
+
+  return bloques.map((b) => ({
+    etiqueta:
+      b.dias.length === 1
+        ? DIA_CORTO[b.dias[0]]
+        : `${DIA_CORTO[b.dias[0]]} - ${DIA_CORTO[b.dias[b.dias.length - 1]]}`,
+    apertura: b.apertura,
+    cierre: b.cierre,
+  }));
+}
+
 export function agruparHorarios(
   schedules: { dia_semana: number; apertura: string | null; cierre: string | null; tipo: string | null }[]
 ) {
-  const orden = (dia: number) => (dia + 6) % 7; // lunes=0 ... domingo=6
   const grupos = new Map<string, typeof schedules>();
 
   for (const h of schedules) {
@@ -305,6 +379,6 @@ export function agruparHorarios(
   return tipos.map((tipo) => ({
     tipo,
     label: TIPO_HORARIO_LABEL[tipo] ?? tipo,
-    horarios: [...grupos.get(tipo)!].sort((a, b) => orden(a.dia_semana) - orden(b.dia_semana)),
+    horarios: compactarHorarios(grupos.get(tipo)!),
   }));
 }
