@@ -193,12 +193,20 @@ export default async function Home() {
       {eventos.length > 0 && (
         <section className="px-5 py-10">
           <div className="mx-auto max-w-7xl">
-            <div className="mb-6">
-              <p className="text-sm font-medium text-lime-400">AGENDA</p>
-              <h2 className="mt-1 text-3xl font-bold">Próximos eventos</h2>
-              <p className="mt-2 text-zinc-500">
-                Fechas concretas, cada una con su temática.
-              </p>
+            <div className="mb-6 flex items-end justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-lime-400">AGENDA</p>
+                <h2 className="mt-1 text-3xl font-bold">Próximos eventos</h2>
+                <p className="mt-2 text-zinc-500">
+                  Fechas concretas, cada una con su temática.
+                </p>
+              </div>
+              <Link
+                href="/eventos"
+                className="w-fit flex-none rounded-xl border border-white/10 px-4 py-2 text-sm text-zinc-300 transition hover:bg-white hover:text-black"
+              >
+                Ver todos →
+              </Link>
             </div>
 
             <div className={SCROLLER}>

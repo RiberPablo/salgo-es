@@ -4,11 +4,10 @@ import { formatFecha, formatHora, formatPrecio, num } from "@/lib/utils";
 
 export function EventCard({ evento }: { evento: EventoConLocal }) {
   const precio = num(evento.precio_desde);
-  const destino = evento.venues ? `/local/${evento.venues.id}` : "/buscar";
 
   return (
     <Link
-      href={destino}
+      href={`/evento/${evento.id}`}
       className="group block overflow-hidden rounded-3xl border border-white/5 bg-zinc-900 transition duration-300 hover:-translate-y-1 hover:border-lime-400/30"
     >
       <div className="relative aspect-[4/5] overflow-hidden bg-zinc-800">
@@ -39,8 +38,17 @@ export function EventCard({ evento }: { evento: EventoConLocal }) {
         <h3 className="mt-1 font-bold leading-tight">
           {evento.nombre ?? evento.venues?.nombre ?? "Evento"}
         </h3>
-        {evento.venues && (
-          <p className="mt-1 text-sm text-zinc-500">{evento.venues.nombre}</p>
+        {evento.fiestas ? (
+          <Link
+            href={`/fiesta/${evento.fiestas.id}`}
+            className="mt-1 block w-fit text-sm text-zinc-500 underline decoration-dotted transition hover:text-lime-400"
+          >
+            {evento.fiestas.nombre}
+          </Link>
+        ) : (
+          evento.venues && (
+            <p className="mt-1 text-sm text-zinc-500">{evento.venues.nombre}</p>
+          )
         )}
         {precio !== null && (
           <p className="mt-3 text-sm font-semibold">

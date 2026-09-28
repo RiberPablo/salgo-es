@@ -11,6 +11,15 @@ import {
   venueTipos,
 } from "./utils";
 
+export type Fiesta = {
+  id: string;
+  nombre: string;
+  descripcion: string | null;
+  instagram: string | null;
+  web: string | null;
+  logo_url: string | null;
+};
+
 export type VenueEvent = {
   id: string;
   nombre: string | null;
@@ -20,6 +29,17 @@ export type VenueEvent = {
   precio_desde: number | null;
   foto_url: string | null;
   entrada_url: string | null;
+  fiestas: Fiesta | null;
+};
+
+export type EventoDetalle = VenueEvent & {
+  venues: {
+    id: string;
+    nombre: string;
+    direccion: string | null;
+    zones: { nombre: string } | null;
+    cities: { nombre: string } | null;
+  } | null;
 };
 
 export type EventoConLocal = VenueEvent & {
@@ -50,6 +70,7 @@ export type Venue = {
     dia_semana: number;
     apertura: string | null;
     cierre: string | null;
+    tipo: string | null;
   }[];
   events?: VenueEvent[];
 };
@@ -64,8 +85,8 @@ const VENUE_SELECT = `
   cities ( nombre ),
   photos ( image_url, is_main ),
   venue_genres ( genres ( nombre ) ),
-  schedules ( dia_semana, apertura, cierre ),
-  events ( id, nombre, descripcion, fecha_inicio, fecha_fin, precio_desde, foto_url, entrada_url )
+  schedules ( dia_semana, apertura, cierre, tipo ),
+  events ( id, nombre, descripcion, fecha_inicio, fecha_fin, precio_desde, foto_url, entrada_url, fiestas ( id, nombre, descripcion, instagram, web, logo_url ) )
 `;
 
 /* ------------------------------------------------------------------ */
@@ -119,7 +140,7 @@ export async function getUpcomingEvents(
   let query = supabase
     .from("events")
     .select(
-      "id, nombre, descripcion, fecha_inicio, fecha_fin, precio_desde, foto_url, entrada_url, venues ( id, nombre, zones ( nombre ) )"
+      "id, nombre, descripcion, fecha_inicio, fecha_fin, precio_desde, foto_url, entrada_url, fiestas ( id, nombre, descripcion, instagram, web, logo_url ), venues ( id, nombre, zones ( nombre ) )"
     )
     .gte("fecha_inicio", `${madridNow().fecha}T00:00:00`)
     .order("fecha_inicio");
@@ -231,4 +252,62 @@ export function filtrarLocales(
   }
 
   return { resultados: lista, ocultosPorPrecio };
+}
+
+
+/* ------------------------------------------------------------------ */
+/* Fiestas (LaVainaBailable y similares: rotan de local)               */
+/* ------------------------------------------------------------------ */
+
+export type FiestaConFechas = Fiesta & {
+  fechas: (VenueEvent & {
+    venues: { id: string; nombre: string; zones: { nombre: string } | null; cities: { nombre: string } | null } | null;
+  })[];
+};
+
+export async function getFiestaById(id: string): Promise<FiestaConFechas | null> {
+  const { data: fiesta, error: errorFiesta } = await supabase
+    .from("fiestas")
+    .select("id, nombre, descripcion, instagram, web, logo_url")
+    .eq("id", id)
+    .eq("activo", true)
+    .single();
+
+  if (errorFiesta || !fiesta) {
+    console.error("Error cargando la fiesta:", errorFiesta?.message);
+    return null;
+  }
+
+  const { data: fechas, error: errorFechas } = await supabase
+    .from("events")
+    .select(
+      "id, nombre, descripcion, fecha_inicio, fecha_fin, precio_desde, foto_url, entrada_url, venues ( id, nombre, zones ( nombre ), cities ( nombre ) )"
+    )
+    .eq("fiesta_id", id)
+    .order("fecha_inicio");
+
+  if (errorFechas) {
+    console.error("Error cargando las fechas de la fiesta:", errorFechas.message);
+  }
+
+  return { ...fiesta, fechas: (fechas ?? []) as unknown as FiestaConFechas["fechas"] };
+}
+
+
+// Un evento concreto, con el local y la fiesta a la que pertenece (si tiene)
+export async function getEventoById(id: string): Promise<EventoDetalle | null> {
+  const { data, error } = await supabase
+    .from("events")
+    .select(
+      "id, nombre, descripcion, fecha_inicio, fecha_fin, precio_desde, foto_url, entrada_url, fiestas ( id, nombre, descripcion, instagram, web, logo_url ), venues ( id, nombre, direccion, zones ( nombre ), cities ( nombre ) )"
+    )
+    .eq("id", id)
+    .single();
+
+  if (error) {
+    console.error("Error cargando el evento:", error.message);
+    return null;
+  }
+
+  return data as unknown as EventoDetalle;
 }

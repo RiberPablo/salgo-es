@@ -5,6 +5,7 @@ import {
   DIAS,
   TIPO_GRADIENTE,
   abreHoy,
+  agruparHorarios,
   edadLabel,
   formatFecha,
   formatHora,
@@ -20,6 +21,10 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 
 export const dynamic = "force-dynamic";
+
+// Locales con muchas fechas seguidas (ej. Fitz) no listan todas aquí,
+// para que la ficha no se haga interminable — el resto está en /eventos.
+const MAX_EVENTOS_VENUE = 8;
 
 export default async function VenueDetailPage({
   params,
@@ -44,10 +49,8 @@ export default async function VenueDetailPage({
     .map((vg) => vg.genres?.nombre)
     .filter(Boolean) as string[];
 
-  // Horarios de lunes a domingo (en BD 0 = domingo)
-  const horarios = [...(venue.schedules ?? [])].sort(
-    (a, b) => (a.dia_semana + 6) % 7 - (b.dia_semana + 6) % 7
-  );
+  // Horarios agrupados por tipo (tardeo/noche), cada grupo lunes a domingo
+  const gruposHorario = agruparHorarios(venue.schedules ?? []);
 
   // Solo eventos de hoy en adelante, el más cercano primero
   const hoy = madridNow().fecha;
@@ -149,6 +152,45 @@ export default async function VenueDetailPage({
             </div>
           )}
 
+          {/* HORARIOS — justo después de la música, para que se vea sin bajar toda la página */}
+          {gruposHorario.length > 0 && (
+            <div className="mt-8">
+              <h2 className="text-xl font-bold">Horarios</h2>
+              <div
+                className={`mt-3 grid gap-4 ${
+                  gruposHorario.length > 1 ? "sm:grid-cols-2" : ""
+                }`}
+              >
+                {gruposHorario.map((grupo) => (
+                  <div key={grupo.tipo}>
+                    {gruposHorario.length > 1 && (
+                      <p className="mb-2 text-sm font-medium text-lime-400">
+                        {grupo.label}
+                      </p>
+                    )}
+                    <div className="divide-y divide-white/5 rounded-2xl border border-white/5">
+                      {grupo.horarios.map((h) => (
+                        <div
+                          key={`${grupo.tipo}-${h.dia_semana}`}
+                          className="flex justify-between px-4 py-3 text-sm"
+                        >
+                          <span className="text-zinc-400">
+                            {DIAS[h.dia_semana]}
+                          </span>
+                          <span className="font-medium">
+                            {h.apertura && h.cierre
+                              ? `${hhmm(h.apertura)} - ${hhmm(h.cierre)}`
+                              : "Cerrado"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* GALERÍA */}
           {fotos.length > 1 && (
             <div className="mt-8">
@@ -167,24 +209,36 @@ export default async function VenueDetailPage({
             </div>
           )}
 
-          {/* PRÓXIMOS EVENTOS */}
+          {/* PRÓXIMOS EVENTOS — cada tarjeta lleva a la ficha propia del evento */}
           {eventos.length > 0 && (
             <div className="mt-8">
-              <h2 className="text-xl font-bold">Próximos eventos</h2>
+              <div className="flex items-end justify-between gap-4">
+                <h2 className="text-xl font-bold">Próximos eventos</h2>
+                {eventos.length > MAX_EVENTOS_VENUE && (
+                  <Link
+                    href="/eventos"
+                    className="text-sm text-zinc-400 transition hover:text-lime-400"
+                  >
+                    Ver más fechas →
+                  </Link>
+                )}
+              </div>
+
               <div className="mt-3 flex flex-col gap-4">
-                {eventos.map((evento) => {
+                {eventos.slice(0, MAX_EVENTOS_VENUE).map((evento) => {
                   const precio = num(evento.precio_desde);
                   return (
-                    <div
+                    <Link
                       key={evento.id}
-                      className="flex overflow-hidden rounded-2xl border border-white/5 bg-zinc-900"
+                      href={`/evento/${evento.id}`}
+                      className="group flex overflow-hidden rounded-2xl border border-white/5 bg-zinc-900 transition hover:border-lime-400/30"
                     >
                       {evento.foto_url && (
                         <img
                           src={evento.foto_url}
                           alt={evento.nombre ?? "Evento"}
                           loading="lazy"
-                          className="w-28 flex-none object-cover sm:w-40"
+                          className="w-28 flex-none object-cover transition duration-500 group-hover:scale-105 sm:w-40"
                         />
                       )}
 
@@ -201,6 +255,12 @@ export default async function VenueDetailPage({
                           {evento.nombre ?? venue.nombre}
                         </h3>
 
+                        {evento.fiestas && (
+                          <span className="mt-0.5 w-fit text-sm text-zinc-400">
+                            {evento.fiestas.nombre}
+                          </span>
+                        )}
+
                         {evento.descripcion && (
                           <p className="mt-1 text-sm text-zinc-400">
                             {evento.descripcion}
@@ -215,43 +275,14 @@ export default async function VenueDetailPage({
                                 : `Desde ${formatPrecio(precio)}`}
                             </span>
                           )}
-
-                          {evento.entrada_url && (
-                            <a
-                              href={evento.entrada_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="rounded-lg bg-lime-400 px-3 py-1.5 text-xs font-bold text-black transition hover:bg-lime-300"
-                            >
-                              Comprar entrada →
-                            </a>
-                          )}
+                          <span className="text-xs font-medium text-zinc-500 transition group-hover:text-lime-400">
+                            Ver evento →
+                          </span>
                         </div>
                       </div>
-                    </div>
+                    </Link>
                   );
                 })}
-              </div>
-            </div>
-          )}
-
-          {horarios.length > 0 && (
-            <div className="mt-8">
-              <h2 className="text-xl font-bold">Horarios</h2>
-              <div className="mt-3 divide-y divide-white/5 rounded-2xl border border-white/5">
-                {horarios.map((h) => (
-                  <div
-                    key={h.dia_semana}
-                    className="flex justify-between px-4 py-3 text-sm"
-                  >
-                    <span className="text-zinc-400">{DIAS[h.dia_semana]}</span>
-                    <span className="font-medium">
-                      {h.apertura && h.cierre
-                        ? `${hhmm(h.apertura)} - ${hhmm(h.cierre)}`
-                        : "Cerrado"}
-                    </span>
-                  </div>
-                ))}
               </div>
             </div>
           )}

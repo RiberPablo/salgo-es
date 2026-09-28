@@ -26,7 +26,7 @@ export function Footer() {
             rel="noopener noreferrer"
             className="transition hover:text-white"
           >
-            Contacto - Pablo Ribera
+            Contacto
           </a>
         </div>
       </div>

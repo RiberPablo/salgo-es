@@ -34,13 +34,21 @@ export function tipoInfo(tipo: string | null | undefined) {
   return CATEGORIAS.find((c) => c.tipo === t);
 }
 
-// Tipo principal + tipos secundarios (ej. tardeo + pub)
+// Tipo principal + tipos secundarios (ej. tardeo + pub) + "tardeo" si el
+// local tiene algún horario marcado como tarde (aunque el tardeo en sí sea
+// obra de una fiesta/promotor distinto, si pasa en este local cuenta).
 export function venueTipos(
-  v: Pick<Venue, "tipo_local" | "tipos_secundarios">
+  v: Pick<Venue, "tipo_local" | "tipos_secundarios"> & {
+    schedules?: { tipo: string | null }[];
+  }
 ): string[] {
   const todos = [v.tipo_local, ...(v.tipos_secundarios ?? [])].filter(
     Boolean
   ) as string[];
+
+  const haceTardeo = (v.schedules ?? []).some((h) => h.tipo === "tarde");
+  if (haceTardeo) todos.push("tardeo");
+
   return Array.from(new Set(todos.map((t) => t.toLowerCase())));
 }
 
@@ -225,4 +233,41 @@ export function formatHora(s: string | null | undefined) {
 export function venueFoto(v: Venue): string | null {
   const fotos = v.photos ?? [];
   return fotos.find((p) => p.is_main)?.image_url ?? fotos[0]?.image_url ?? null;
+}
+
+/* ------------------------------------------------------------------ */
+/* Horarios                                                            */
+/* ------------------------------------------------------------------ */
+
+export const TIPO_HORARIO_LABEL: Record<string, string> = {
+  tarde: "Tardeo",
+  noche: "Noche",
+};
+
+// Agrupa los horarios por tipo (tardeo/noche) y ordena cada grupo de
+// lunes a domingo (en BD 0 = domingo, así que lo llevamos al final).
+export function agruparHorarios(
+  schedules: { dia_semana: number; apertura: string | null; cierre: string | null; tipo: string | null }[]
+) {
+  const orden = (dia: number) => (dia + 6) % 7; // lunes=0 ... domingo=6
+  const grupos = new Map<string, typeof schedules>();
+
+  for (const h of schedules) {
+    const tipo = h.tipo ?? "noche";
+    if (!grupos.has(tipo)) grupos.set(tipo, []);
+    grupos.get(tipo)!.push(h);
+  }
+
+  // "noche" siempre primero (el caso más común), luego el resto alfabético
+  const tipos = Array.from(grupos.keys()).sort((a, b) => {
+    if (a === "noche") return -1;
+    if (b === "noche") return 1;
+    return a.localeCompare(b, "es");
+  });
+
+  return tipos.map((tipo) => ({
+    tipo,
+    label: TIPO_HORARIO_LABEL[tipo] ?? tipo,
+    horarios: [...grupos.get(tipo)!].sort((a, b) => orden(a.dia_semana) - orden(b.dia_semana)),
+  }));
 }

@@ -59,7 +59,7 @@ export default async function EventosPage() {
                 return (
                   <a
                     key={evento.id}
-                    href={evento.venues ? `/local/${evento.venues.id}` : "#"}
+                    href={`/evento/${evento.id}`}
                     className="group block overflow-hidden rounded-3xl border border-white/5 bg-zinc-900 transition duration-300 hover:-translate-y-1 hover:border-lime-400/40"
                   >
                     <div className="relative h-48 overflow-hidden bg-zinc-800">
@@ -79,6 +79,12 @@ export default async function EventosPage() {
 
                     <div className="p-5">
                       <h3 className="text-lg font-bold">{evento.nombre}</h3>
+
+                      {evento.fiestas && (
+                        <p className="mt-1 text-sm text-lime-400">
+                          {evento.fiestas.nombre}
+                        </p>
+                      )}
 
                       {evento.venues && (
                         <p className="mt-1 text-sm text-zinc-500">
