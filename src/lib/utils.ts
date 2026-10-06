@@ -63,7 +63,7 @@ export function tiposPrincipales(
 // horario u evento que empieza por la tarde — aunque el tardeo en sí sea obra
 // de una fiesta/promotor distinto, si pasa aquí cuenta. Se usa para FILTRAR
 // (categoría, buscador); para mostrar insignias en una tarjeta usa
-// tiposPrincipales() + haceTardeoAdemas(), que lo separan visualmente.
+// tiposPrincipales(), que no deduce nada de los horarios.
 export function venueTipos(
   v: Pick<Venue, "tipo_local" | "tipos_secundarios"> & {
     schedules?: { tipo: string | null; apertura?: string | null }[];
@@ -83,15 +83,34 @@ export function venueTipos(
   return Array.from(new Set(todos));
 }
 
-// True cuando el local hace tardeo pero NO es su tipo principal (ej. Fitz:
-// discoteca que además tiene tardeo de sábado con otro promotor). Para estos
-// casos no tiene sentido mostrar "Discoteca" y "Tardeo" como si fueran dos
-// tipos iguales — mejor una indicación de "tarde y noche" aparte.
-export function haceTardeoAdemas(
-  v: Parameters<typeof venueTipos>[0]
+// True cuando el local tiene una sesión de tardeo HOY (horario de tarde ese
+// día de la semana, o un evento de hoy que empieza por la tarde). Sirve para
+// mostrar "Tardeo hoy" solo cuando es verdad: Fitz hace tardeo los sábados,
+// no un martes, y un martes no debe aparecer como tarde y noche.
+export function tardeoHoy(
+  v: {
+    schedules?: {
+      dia_semana: number;
+      tipo: string | null;
+      apertura: string | null;
+    }[];
+    events?: { fecha_inicio: string | null }[];
+  },
+  noche: { dia: number; fecha: string } = nocheActual()
 ): boolean {
-  return venueTipos(v).includes("tardeo") && !tiposPrincipales(v).includes("tardeo");
+  const porHorario = (v.schedules ?? []).some(
+    (h) =>
+      h.dia_semana === noche.dia &&
+      (h.tipo === "tarde" || esHoraDeTardeo(horaDe(h.apertura)))
+  );
+  const porEvento = (v.events ?? []).some(
+    (e) =>
+      (e.fecha_inicio ?? "").slice(0, 10) === noche.fecha &&
+      esHoraDeTardeo(horaDe(e.fecha_inicio))
+  );
+  return porHorario || porEvento;
 }
+
 
 /* ------------------------------------------------------------------ */
 /* Texto y precios                                                     */

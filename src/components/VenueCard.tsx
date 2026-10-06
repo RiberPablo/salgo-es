@@ -5,8 +5,8 @@ import {
   abreHoy,
   edadLabel,
   formatPrecio,
-  haceTardeoAdemas,
   nocheActual,
+  tardeoHoy,
   num,
   tipoInfo,
   tiposPrincipales,
@@ -22,13 +22,14 @@ export function VenueCard({
 }) {
   const foto = venueFoto(venue);
   const tipos = tiposPrincipales(venue);
-  const tardeoAdemas = haceTardeoAdemas(venue);
   const principal = tipoInfo(tipos[0]);
   const generos = (venue.venue_genres ?? [])
     .map((vg) => vg.genres?.nombre)
     .filter(Boolean) as string[];
 
-  const abre = abreHoy(venue, noche ?? nocheActual());
+  const hoy = noche ?? nocheActual();
+  const abre = abreHoy(venue, hoy);
+  const tardeo = tardeoHoy(venue, hoy);
   const edad = edadLabel(venue.rango_edad);
   const gratis = num(venue.precio_entrada) === 0;
 
@@ -76,17 +77,12 @@ export function VenueCard({
               {t}
             </span>
           ))}
-          {tardeoAdemas && (
-            <span className="rounded-full border border-amber-300/40 bg-amber-400/15 px-3 py-1 text-xs font-medium text-amber-200 backdrop-blur">
-              🌇 Tarde y noche
-            </span>
-          )}
         </div>
 
         {abre && (
           <span className="absolute right-4 top-4 flex items-center gap-1.5 rounded-full bg-lime-400 px-3 py-1 text-xs font-bold text-black">
             <span className="h-1.5 w-1.5 rounded-full bg-black" />
-            Abre hoy
+            {tardeo ? "Tardeo hoy" : "Abre hoy"}
           </span>
         )}
 

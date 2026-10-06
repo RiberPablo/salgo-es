@@ -9,10 +9,10 @@ import {
   formatFecha,
   formatHora,
   formatPrecio,
-  haceTardeoAdemas,
   hhmm,
   madridNow,
   num,
+  tardeoHoy,
   tipoInfo,
   tiposPrincipales,
   venueFoto,
@@ -41,7 +41,7 @@ export default async function VenueDetailPage({
   const foto = venueFoto(venue);
   const fotos = venue.photos ?? [];
   const tipos = tiposPrincipales(venue);
-  const tardeoAdemas = haceTardeoAdemas(venue);
+  const tardeo = tardeoHoy(venue);
   const principal = tipoInfo(tipos[0]);
   const abre = abreHoy(venue);
   const edad = edadLabel(venue.rango_edad);
@@ -105,15 +105,10 @@ export default async function VenueDetailPage({
                 {t}
               </span>
             ))}
-            {tardeoAdemas && (
-              <span className="rounded-full border border-amber-300/40 bg-amber-400/15 px-3 py-1 text-xs font-bold text-amber-200">
-                🌇 Tarde y noche
-              </span>
-            )}
             {abre && (
               <span className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-bold text-black">
                 <span className="h-1.5 w-1.5 rounded-full bg-lime-500" />
-                Abre hoy
+                {tardeo ? "Tardeo hoy" : "Abre hoy"}
               </span>
             )}
           </div>
