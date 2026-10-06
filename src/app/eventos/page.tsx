@@ -1,124 +1,191 @@
-import { getUpcomingEvents } from "@/lib/venues";
-import { formatFecha, formatHora } from "@/lib/utils";
+import Link from "next/link";
+import { getEventosEspeciales } from "@/lib/venues";
+import {
+  EVENTO_CATEGORIAS,
+  etiquetaFechaLarga,
+  nocheActual,
+  proximosDias,
+} from "@/lib/utils";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
+import { DayStrip } from "@/components/DayStrip";
+import { EventCard } from "@/components/EventCard";
 
-export default async function EventosPage() {
-  const eventos = await getUpcomingEvents(50);
+export const dynamic = "force-dynamic";
+
+type Params = Record<string, string | string[] | undefined>;
+
+function primero(v: string | string[] | undefined): string | undefined {
+  const s = Array.isArray(v) ? v[0] : v;
+  return s && s.trim() ? s.trim() : undefined;
+}
+
+const diaDe = (fecha: string | null) => (fecha ?? "").slice(0, 10);
+
+export default async function EventosPage({
+  searchParams,
+}: {
+  searchParams: Promise<Params>;
+}) {
+  const raw = await searchParams;
+  const todos = await getEventosEspeciales();
+
+  // Tipos que hay de verdad ahora mismo (con su número de eventos)
+  const conteo = new Map<string, number>();
+  for (const e of todos) {
+    const c = e.categoria ?? "fiesta";
+    conteo.set(c, (conteo.get(c) ?? 0) + 1);
+  }
+
+  const categoriaPedida = primero(raw.categoria);
+  const categoria =
+    categoriaPedida && conteo.has(categoriaPedida) ? categoriaPedida : undefined;
+
+  const delTipo = categoria
+    ? todos.filter((e) => (e.categoria ?? "fiesta") === categoria)
+    : todos;
+
+  // Solo se ofrecen los días en los que hay algo
+  const diasConEvento = new Set(delTipo.map((e) => diaDe(e.fecha_inicio)));
+  const fechaPedida = primero(raw.fecha);
+  const fecha =
+    fechaPedida && diasConEvento.has(fechaPedida) ? fechaPedida : undefined;
+
+  const visibles = fecha
+    ? delTipo.filter((e) => diaDe(e.fecha_inicio) === fecha)
+    : delTipo;
+
+  // Agrupados por día, en orden
+  const grupos = new Map<string, typeof visibles>();
+  for (const e of visibles) {
+    const d = diaDe(e.fecha_inicio);
+    if (!grupos.has(d)) grupos.set(d, []);
+    grupos.get(d)!.push(e);
+  }
+
+  function hrefCon(nuevo: { categoria?: string; fecha?: string }) {
+    const p = new URLSearchParams();
+    const c = "categoria" in nuevo ? nuevo.categoria : categoria;
+    const f = "fecha" in nuevo ? nuevo.fecha : fecha;
+    if (c) p.set("categoria", c);
+    if (f) p.set("fecha", f);
+    const qs = p.toString();
+    return qs ? `/eventos?${qs}` : "/eventos";
+  }
+
+  const dias = proximosDias(90)
+    .filter((d) => diasConEvento.has(d.fecha))
+    .slice(0, 14)
+    .map((d) => ({
+      ...d,
+      href: hrefCon({ fecha: d.fecha }),
+      activo: d.fecha === fecha,
+    }));
+
+  const chip = (activo: boolean) =>
+    `rounded-full border px-4 py-1.5 text-sm transition ${
+      activo
+        ? "border-lime-400 bg-lime-400 font-bold text-black"
+        : "border-white/10 bg-white/[0.03] text-zinc-300 hover:border-lime-400/40 hover:text-white"
+    }`;
 
   return (
     <main className="min-h-screen bg-[#09090b] text-white">
-      {/* HEADER */}
-      <header className="sticky top-0 z-50 border-b border-white/5 bg-[#09090b]/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
-          <a href="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-lime-400 text-lg font-black text-black">
-              S
-            </div>
-            <span className="text-xl font-black tracking-tight">
-              salgo<span className="text-lime-400">.es</span>
-            </span>
-          </a>
-          <a
-            href="/"
-            className="rounded-xl border border-white/10 px-4 py-2 text-sm text-zinc-300 transition hover:bg-white hover:text-black"
-          >
-            ← Volver
-          </a>
-        </div>
-      </header>
+      <Header />
 
-      {/* TITULO */}
-      <section className="px-5 py-10">
+      <section className="px-5 pb-6 pt-10">
         <div className="mx-auto max-w-7xl">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/[0.05] text-3xl">
-            🎤
-          </div>
-          <h1 className="mt-4 text-4xl font-black tracking-tight md:text-5xl">
-            Eventos
+          <p className="text-sm font-medium text-lime-400">AGENDA DE MADRID</p>
+          <h1 className="mt-1 text-3xl font-black md:text-5xl">
+            {fecha ? `Eventos el ${etiquetaFechaLarga(fecha)}` : "Eventos"}
           </h1>
-          <p className="mt-2 text-zinc-500">
-            {eventos.length > 0
-              ? `${eventos.length} ${eventos.length === 1 ? "evento" : "eventos"} próximamente`
-              : "Todavía no tenemos eventos publicados — vuelve pronto."}
+          <p className="mt-2 max-w-2xl text-zinc-500">
+            Conciertos, festivales y fiestas populares: la Hispanidad, fiestas
+            patronales y todo lo que pasa en la ciudad fuera de las
+            discotecas.
           </p>
-        </div>
-      </section>
 
-      {/* GRID */}
-      <section className="px-5 pb-16">
-        <div className="mx-auto max-w-7xl">
-          {eventos.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-white/10 p-16 text-center text-zinc-500">
-              Todavía no hay eventos con fecha confirmada. Vuelve pronto 👀
+          {/* TIPO DE EVENTO */}
+          {conteo.size > 1 && (
+            <div className="mt-6 flex flex-wrap gap-2">
+              <Link
+                href={hrefCon({ categoria: undefined })}
+                className={chip(!categoria)}
+              >
+                Todos ({todos.length})
+              </Link>
+              {Array.from(conteo.entries()).map(([c, n]) => (
+                <Link
+                  key={c}
+                  href={hrefCon({ categoria: c })}
+                  className={chip(categoria === c)}
+                >
+                  {EVENTO_CATEGORIAS[c]?.icon ?? "🎉"}{" "}
+                  {EVENTO_CATEGORIAS[c]?.plural ?? c} ({n})
+                </Link>
+              ))}
             </div>
-          ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {eventos.map((evento) => {
-                const fechaLabel = formatFecha(evento.fecha_inicio);
-                const horaLabel = formatHora(evento.fecha_inicio);
+          )}
 
-                return (
-                  <a
-                    key={evento.id}
-                    href={`/evento/${evento.id}`}
-                    className="group block overflow-hidden rounded-3xl border border-white/5 bg-zinc-900 transition duration-300 hover:-translate-y-1 hover:border-lime-400/40"
-                  >
-                    <div className="relative h-48 overflow-hidden bg-zinc-800">
-                      <img
-                        src={
-                          evento.foto_url ??
-                          "https://images.unsplash.com/photo-1566737236500-c8ac43014a67?auto=format&fit=crop&w=1200&q=80"
-                        }
-                        alt={evento.nombre ?? "Evento"}
-                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                      <div className="absolute left-4 top-4 rounded-full bg-lime-400 px-3 py-1.5 text-xs font-bold capitalize text-black">
-                        {fechaLabel} · {horaLabel}
-                      </div>
-                    </div>
-
-                    <div className="p-5">
-                      <h3 className="text-lg font-bold">{evento.nombre}</h3>
-
-                      {evento.fiestas && (
-                        <p className="mt-1 text-sm text-lime-400">
-                          {evento.fiestas.nombre}
-                        </p>
-                      )}
-
-                      {evento.venues && (
-                        <p className="mt-1 text-sm text-zinc-500">
-                          📍 {evento.venues.nombre}
-                          {evento.venues.zones
-                            ? ` · ${evento.venues.zones.nombre}`
-                            : ""}
-                        </p>
-                      )}
-
-                      <div className="mt-4 flex items-center justify-between border-t border-white/5 pt-4 text-sm">
-                        <div>
-                          <p className="text-xs text-zinc-500">Desde</p>
-                          <p className="font-semibold text-white">
-                            {evento.precio_desde != null
-                              ? `${evento.precio_desde}€`
-                              : "Consultar"}
-                          </p>
-                        </div>
-
-                        {evento.entrada_url && (
-                          <span className="rounded-xl bg-white/[0.05] px-4 py-2 text-xs font-medium text-white transition group-hover:bg-lime-400 group-hover:text-black">
-                            Entradas →
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </a>
-                );
-              })}
+          {/* ELEGIR DÍA */}
+          {dias.length > 0 && (
+            <div className="mt-5">
+              <DayStrip
+                dias={dias}
+                hrefTodos={hrefCon({ fecha: undefined })}
+                sinFecha={!fecha}
+              />
             </div>
           )}
         </div>
       </section>
+
+      <section className="px-5 pb-16 pt-2">
+        <div className="mx-auto max-w-7xl">
+          {visibles.length === 0 ? (
+            <div className="rounded-3xl border border-dashed border-white/10 p-16 text-center text-zinc-500">
+              Todavía no hay eventos publicados. Vuelve pronto 👀
+              <br />
+              <Link
+                href="/buscar?fecha=hoy"
+                className="mt-4 inline-block text-lime-400 hover:underline"
+              >
+                Ver qué abre esta noche →
+              </Link>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-12">
+              {Array.from(grupos.entries()).map(([dia, lista]) => (
+                <div key={dia}>
+                  <h2 className="mb-4 text-xl font-bold capitalize">
+                    {etiquetaFechaLarga(dia)}{" "}
+                    <span className="text-base font-normal text-zinc-500">
+                      ({lista.length})
+                    </span>
+                  </h2>
+                  <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                    {lista.map((e) => (
+                      <EventCard key={e.id} evento={e} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-14 rounded-3xl border border-white/5 bg-zinc-900 p-6 text-sm text-zinc-400">
+            ¿Buscas fiesta en una discoteca o un tardeo?{" "}
+            <Link
+              href={`/buscar?fecha=${fecha ?? nocheActual().fecha}`}
+              className="font-medium text-lime-400 hover:underline"
+            >
+              Mira qué hay ese día en los locales →
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <Footer />
     </main>
   );
 }

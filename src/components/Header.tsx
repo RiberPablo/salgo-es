@@ -5,7 +5,7 @@ const NAV = [
   { href: "/categoria/discotecas", label: "Discotecas" },
   { href: "/categoria/tardeos", label: "Tardeos" },
   { href: "/categoria/pubs", label: "Pubs" },
-  { href: "/categoria/bares", label: "Bares" },
+  { href: "/eventos", label: "Eventos" },
 ];
 
 export function Header() {

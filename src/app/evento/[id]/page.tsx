@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getEventoById, getVenueById } from "@/lib/venues";
 import {
+  EVENTO_CATEGORIAS,
   TIPO_GRADIENTE,
   edadLabel,
   formatFecha,
@@ -34,12 +35,28 @@ export default async function EventoPage({
   const venue = evento.venues ? await getVenueById(evento.venues.id) : null;
 
   const precio = num(evento.precio_desde);
-  const direccion = venue?.direccion ?? evento.venues?.direccion ?? null;
-  const ciudad = venue?.cities?.nombre ?? evento.venues?.cities?.nombre ?? "";
+  const categoria = evento.categoria ?? "fiesta";
+  const infoCategoria = EVENTO_CATEGORIAS[categoria];
+  const esEspecial = categoria !== "fiesta"; // concierto, festival, fiesta popular
 
-  const mapsUrl = direccion
+  const lugar = evento.lugar ?? null; // sitio suelto, cuando no hay local
+  const direccion =
+    evento.direccion ?? venue?.direccion ?? evento.venues?.direccion ?? null;
+  const ciudad =
+    venue?.cities?.nombre ??
+    evento.venues?.cities?.nombre ??
+    evento.cities?.nombre ??
+    "";
+
+  // Cómo llegar: la dirección si la hay y, si no, el nombre del sitio
+  const consultaMapa = direccion
+    ? `${direccion}, ${ciudad}`
+    : lugar
+    ? `${lugar}, ${ciudad || "Madrid"}`
+    : null;
+  const mapsUrl = consultaMapa
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-        `${direccion}, ${ciudad}`
+        consultaMapa
       )}`
     : null;
 
@@ -73,10 +90,10 @@ export default async function EventoPage({
 
       <div className="mx-auto max-w-5xl px-5 py-10">
         <Link
-          href={venue ? `/local/${venue.id}` : "/"}
+          href={venue ? `/local/${venue.id}` : "/eventos"}
           className="text-sm text-zinc-500 transition hover:text-white"
         >
-          ← {venue ? venue.nombre : "Volver"}
+          ← {venue ? venue.nombre : "Eventos"}
         </Link>
 
         <div className="mt-6 grid gap-8 md:grid-cols-[1fr_1.3fr]">
@@ -114,6 +131,19 @@ export default async function EventoPage({
               >
                 {evento.fiestas.nombre}
               </Link>
+            )}
+
+            {esEspecial && infoCategoria && (
+              <span className="mt-3 inline-block rounded-full bg-lime-400 px-3 py-1 text-xs font-bold text-black">
+                {infoCategoria.icon} {infoCategoria.nombre}
+              </span>
+            )}
+
+            {!venue && lugar && (
+              <p className="mt-2 text-zinc-300">
+                📍 {lugar}
+                {ciudad ? `, ${ciudad}` : ""}
+              </p>
             )}
 
             {venue && (
@@ -179,6 +209,16 @@ export default async function EventoPage({
                   Comprar entrada →
                 </a>
               )}
+              {evento.fuente_url && (
+                <a
+                  href={evento.fuente_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-xl border border-white/10 px-6 py-3 text-center text-sm font-medium transition hover:bg-white hover:text-black"
+                >
+                  Más información →
+                </a>
+              )}
               {mapsUrl && (
                 <a
                   href={mapsUrl}
@@ -191,7 +231,7 @@ export default async function EventoPage({
               )}
             </div>
 
-            {!evento.entrada_url && (
+            {!evento.entrada_url && !esEspecial && (
               <p className="mt-4 text-xs text-zinc-600">
                 Todavía no tenemos el enlace de venta de entradas para esta
                 fecha en concreto.

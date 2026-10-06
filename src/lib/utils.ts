@@ -8,8 +8,20 @@ export const CATEGORIAS = [
   { slug: "discotecas", tipo: "discoteca", nombre: "Discotecas", icon: "🪩" },
   { slug: "pubs", tipo: "pub", nombre: "Pubs", icon: "🍸" },
   { slug: "tardeos", tipo: "tardeo", nombre: "Tardeos", icon: "🍹" },
-  { slug: "bares", tipo: "bar", nombre: "Bares", icon: "🍺" },
 ] as const;
+
+// Tipos de evento que no son una fiesta en un local: conciertos, festivales y
+// fiestas populares (Hispanidad, fiestas patronales...). Coinciden con los
+// valores de events.categoria en la base de datos.
+export const EVENTO_CATEGORIAS: Record<
+  string,
+  { nombre: string; plural: string; icon: string }
+> = {
+  fiesta: { nombre: "Fiesta", plural: "Fiestas", icon: "🪩" },
+  concierto: { nombre: "Concierto", plural: "Conciertos", icon: "🎤" },
+  festival: { nombre: "Festival", plural: "Festivales", icon: "🎪" },
+  popular: { nombre: "Fiesta popular", plural: "Fiestas populares", icon: "🎊" },
+};
 
 export const DIAS = [
   "Domingo",

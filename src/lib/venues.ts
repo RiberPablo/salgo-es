@@ -32,6 +32,13 @@ export type VenueEvent = {
   rango_edad: string | null;
   vestimenta: string | null;
   fiestas: Fiesta | null;
+  // Eventos que no son una fiesta en un local (conciertos, fiestas populares...)
+  categoria?: string;
+  es_gratis?: boolean;
+  lugar?: string | null; // sitio, cuando no hay local (ej. "Plaza de España")
+  direccion?: string | null;
+  fuente_url?: string | null;
+  cities?: { nombre: string } | null;
 };
 
 export type EventoDetalle = VenueEvent & {
@@ -134,6 +141,9 @@ export async function getVenuesByTipo(tipoLocal: string): Promise<Venue[]> {
   return todos.filter((v) => venueTipos(v).includes(t));
 }
 
+const EVENTO_SELECT =
+  "id, nombre, descripcion, fecha_inicio, fecha_fin, precio_desde, foto_url, entrada_url, rango_edad, vestimenta, categoria, es_gratis, lugar, direccion, fuente_url, cities ( nombre ), fiestas ( id, nombre, descripcion, instagram, web, logo_url ), venues ( id, nombre, direccion, zones ( nombre ), cities ( nombre ) )";
+
 // Eventos puntuales de hoy en adelante, de cualquier local.
 // limit es opcional: sin él, trae todos los que haya.
 export async function getUpcomingEvents(
@@ -141,9 +151,8 @@ export async function getUpcomingEvents(
 ): Promise<EventoConLocal[]> {
   let query = supabase
     .from("events")
-    .select(
-      "id, nombre, descripcion, fecha_inicio, fecha_fin, precio_desde, foto_url, entrada_url, rango_edad, vestimenta, fiestas ( id, nombre, descripcion, instagram, web, logo_url ), venues ( id, nombre, zones ( nombre ) )"
-    )
+    .select(EVENTO_SELECT)
+    .eq("categoria", "fiesta")
     .gte("fecha_inicio", `${madridNow().fecha}T00:00:00`)
     .order("fecha_inicio");
 
@@ -155,6 +164,24 @@ export async function getUpcomingEvents(
 
   if (error) {
     console.error("Error cargando eventos:", error.message);
+    return [];
+  }
+
+  return data as unknown as EventoConLocal[];
+}
+
+// Eventos que no son una fiesta en un local: conciertos, festivales y fiestas
+// populares (Hispanidad, fiestas patronales...). De hoy en adelante.
+export async function getEventosEspeciales(): Promise<EventoConLocal[]> {
+  const { data, error } = await supabase
+    .from("events")
+    .select(EVENTO_SELECT)
+    .neq("categoria", "fiesta")
+    .gte("fecha_inicio", `${madridNow().fecha}T00:00:00`)
+    .order("fecha_inicio");
+
+  if (error) {
+    console.error("Error cargando eventos especiales:", error.message);
     return [];
   }
 
@@ -303,9 +330,7 @@ export async function getFiestaById(id: string): Promise<FiestaConFechas | null>
 export async function getEventoById(id: string): Promise<EventoDetalle | null> {
   const { data, error } = await supabase
     .from("events")
-    .select(
-      "id, nombre, descripcion, fecha_inicio, fecha_fin, precio_desde, foto_url, entrada_url, rango_edad, vestimenta, fiestas ( id, nombre, descripcion, instagram, web, logo_url ), venues ( id, nombre, direccion, zones ( nombre ), cities ( nombre ) )"
-    )
+    .select(EVENTO_SELECT)
     .eq("id", id)
     .single();
 

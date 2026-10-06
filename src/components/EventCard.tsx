@@ -1,9 +1,21 @@
 import Link from "next/link";
 import type { EventoConLocal } from "@/lib/venues";
-import { formatFecha, formatHora, formatPrecio, num } from "@/lib/utils";
+import {
+  EVENTO_CATEGORIAS,
+  formatFecha,
+  formatHora,
+  formatPrecio,
+  num,
+} from "@/lib/utils";
 
 export function EventCard({ evento }: { evento: EventoConLocal }) {
   const precio = num(evento.precio_desde);
+  const categoria = evento.categoria ?? "fiesta";
+  const infoCategoria = EVENTO_CATEGORIAS[categoria];
+
+  // Dónde es: la fiesta, el local, o el sitio suelto (ej. "Plaza de España")
+  const donde =
+    evento.fiestas?.nombre ?? evento.venues?.nombre ?? evento.lugar ?? null;
 
   return (
     <Link
@@ -20,7 +32,9 @@ export function EventCard({ evento }: { evento: EventoConLocal }) {
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-fuchsia-600/40 via-violet-900/40 to-zinc-900">
-            <span className="text-6xl opacity-40">🎉</span>
+            <span className="text-6xl opacity-40">
+              {infoCategoria?.icon ?? "🎉"}
+            </span>
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
@@ -28,6 +42,12 @@ export function EventCard({ evento }: { evento: EventoConLocal }) {
         <span className="absolute left-4 top-4 rounded-full bg-lime-400 px-3 py-1 text-xs font-bold capitalize text-black">
           {formatFecha(evento.fecha_inicio, true)}
         </span>
+
+        {categoria !== "fiesta" && infoCategoria && (
+          <span className="absolute bottom-3 left-4 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white backdrop-blur">
+            {infoCategoria.icon} {infoCategoria.nombre}
+          </span>
+        )}
       </div>
 
       <div className="p-4">
@@ -38,18 +58,8 @@ export function EventCard({ evento }: { evento: EventoConLocal }) {
         <h3 className="mt-1 font-bold leading-tight">
           {evento.nombre ?? evento.venues?.nombre ?? "Evento"}
         </h3>
-        {evento.fiestas ? (
-          <Link
-            href={`/fiesta/${evento.fiestas.id}`}
-            className="mt-1 block w-fit text-sm text-zinc-500 underline decoration-dotted transition hover:text-lime-400"
-          >
-            {evento.fiestas.nombre}
-          </Link>
-        ) : (
-          evento.venues && (
-            <p className="mt-1 text-sm text-zinc-500">{evento.venues.nombre}</p>
-          )
-        )}
+        {/* Toda la tarjeta ya es un enlace: aquí solo texto */}
+        {donde && <p className="mt-1 text-sm text-zinc-500">{donde}</p>}
         {precio !== null && (
           <p className="mt-3 text-sm font-semibold">
             {precio === 0 ? "Gratis" : `Desde ${formatPrecio(precio)}`}
