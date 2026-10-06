@@ -261,7 +261,7 @@ export default async function VenueDetailPage({
                         )}
 
                         {evento.descripcion && (
-                          <p className="mt-1 text-sm text-zinc-400">
+                          <p className="mt-1 line-clamp-2 text-sm text-zinc-400">
                             {evento.descripcion}
                           </p>
                         )}

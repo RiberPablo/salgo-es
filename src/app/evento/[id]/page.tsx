@@ -152,7 +152,7 @@ export default async function EventoPage({
             )}
 
             {evento.descripcion && (
-              <p className="mt-5 leading-relaxed text-zinc-400">
+              <p className="mt-5 whitespace-pre-line leading-relaxed text-zinc-400">
                 {evento.descripcion}
               </p>
             )}
