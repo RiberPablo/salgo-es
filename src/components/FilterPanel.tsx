@@ -3,17 +3,6 @@ import type { ReactNode } from "react";
 import type { Filtros } from "@/lib/venues";
 import { CATEGORIAS } from "@/lib/utils";
 
-const CUANDO = [
-  { value: "hoy", label: "Esta noche" },
-  { value: "5", label: "Viernes" },
-  { value: "6", label: "Sábado" },
-  { value: "0", label: "Domingo" },
-  { value: "1", label: "Lunes" },
-  { value: "2", label: "Martes" },
-  { value: "3", label: "Miércoles" },
-  { value: "4", label: "Jueves" },
-];
-
 // Cada tramo se filtra con su edad mínima: "+25" enseña los locales que
 // admiten a alguien de 25, así que quedan fuera los que empiezan en +35.
 const EDADES = [
@@ -55,6 +44,7 @@ export function FilterPanel({
   ciudades,
   generos,
   vestimentas,
+  hoy,
 }: {
   valores: Filtros;
   activos: number;
@@ -62,6 +52,7 @@ export function FilterPanel({
   ciudades: string[];
   generos: string[];
   vestimentas: string[];
+  hoy: string;
 }) {
   return (
     <details
@@ -105,15 +96,14 @@ export function FilterPanel({
             </select>
           </Campo>
 
-          <Campo label="Cuándo">
-            <select name="cuando" defaultValue={valores.cuando ?? ""} className={CAMPO}>
-              <option value="">Cualquier día</option>
-              {CUANDO.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
+          <Campo label="Día">
+            <input
+              type="date"
+              name="fecha"
+              min={hoy}
+              defaultValue={valores.fecha ?? ""}
+              className={CAMPO}
+            />
           </Campo>
 
           <Campo label="Ciudad">

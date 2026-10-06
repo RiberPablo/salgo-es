@@ -18,7 +18,7 @@ import { EventCard } from "@/components/EventCard";
 export const dynamic = "force-dynamic";
 
 const CHIPS = [
-  { label: "🌙 Esta noche", href: "/buscar?cuando=hoy" },
+  { label: "🌙 Esta noche", href: "/buscar?fecha=hoy" },
   { label: "🆓 Entrada gratis", href: "/buscar?precio=gratis" },
   { label: "🎵 Música latina", href: "/buscar?genero=M%C3%BAsica%20Latina" },
   { label: "🔥 Reggaetón", href: "/buscar?genero=Reggaet%C3%B3n" },
@@ -171,7 +171,7 @@ export default async function Home() {
                 <h2 className="mt-2 text-3xl font-bold">Abren hoy</h2>
               </div>
               <Link
-                href="/buscar?cuando=hoy"
+                href="/buscar?fecha=hoy"
                 className="w-fit flex-none rounded-xl border border-white/10 px-4 py-2 text-sm text-zinc-300 transition hover:bg-white hover:text-black"
               >
                 Ver todos →

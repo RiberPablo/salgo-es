@@ -36,7 +36,7 @@ export function tipoInfo(tipo: string | null | undefined) {
 
 // Hora de inicio (0-23) de una fecha "YYYY-MM-DDTHH:MM..." guardada tal
 // cual, sin conversiones de zona horaria.
-function horaDe(fecha: string | null | undefined): number | null {
+export function horaDe(fecha: string | null | undefined): number | null {
   const m = (fecha ?? "").match(/T(\d{2}):|(?:^|\s)(\d{2}):\d{2}(?::|$)/);
   const h = m ? Number(m[1] ?? m[2]) : NaN;
   return Number.isFinite(h) ? h : null;
@@ -44,7 +44,7 @@ function horaDe(fecha: string | null | undefined): number | null {
 
 // Una tardeo empieza a mediodía o por la tarde, nunca a la 1 de la
 // madrugada: 00:00-11:59 es "sigue siendo de madrugada/mañana", no tardeo.
-function esHoraDeTardeo(hora: number | null): boolean {
+export function esHoraDeTardeo(hora: number | null): boolean {
   return hora !== null && hora >= 12 && hora < 21;
 }
 
@@ -247,16 +247,137 @@ export function abreEnDia(v: Venue, dia: number): boolean {
   return porHorario || porEvento;
 }
 
-// Abre esta noche por horario semanal, o tiene un evento puntual hoy
+// Abre esa noche: por horario semanal de ese día, o porque tiene un evento
+// justo en esa fecha. Vale para hoy y para cualquier otro día que elija el
+// usuario (ya NO cuenta eventos de otras semanas que caen en el mismo día).
 export function abreHoy(
   v: Venue,
   noche: { dia: number; fecha: string } = nocheActual()
 ): boolean {
-  const porHorario = abreEnDia(v, noche.dia);
+  const porHorario = (v.schedules ?? []).some(
+    (s) => s.dia_semana === noche.dia
+  );
   const porEvento = (v.events ?? []).some(
     (e) => e.fecha_inicio?.slice(0, 10) === noche.fecha
   );
   return porHorario || porEvento;
+}
+
+/* ------------------------------------------------------------------ */
+/* Vista por día: qué pasa en cada local una fecha concreta            */
+/* ------------------------------------------------------------------ */
+
+export function diaDeFecha(fecha: string | null | undefined): number | null {
+  return diaSemanaDe(fecha);
+}
+
+export function nocheDeFecha(
+  fecha: string
+): { dia: number; fecha: string } | null {
+  const dia = diaSemanaDe(fecha);
+  return dia === null ? null : { dia, fecha: fecha.slice(0, 10) };
+}
+
+export function sumarDias(fecha: string, n: number): string {
+  const m = fecha.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return fecha;
+  return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + n))
+    .toISOString()
+    .slice(0, 10);
+}
+
+const DIA_LARGO = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+const MES_LARGO = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+
+// "sábado 10 de octubre"
+export function etiquetaFechaLarga(fecha: string): string {
+  const dia = diaSemanaDe(fecha);
+  const m = fecha.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (dia === null || !m) return fecha;
+  return `${DIA_LARGO[dia]} ${Number(m[3])} de ${MES_LARGO[Number(m[2]) - 1]}`;
+}
+
+// "Hoy" / "Mañana" / "Sáb 10 oct"
+export function etiquetaFechaCorta(fecha: string): string {
+  const hoy = nocheActual().fecha;
+  if (fecha === hoy) return "Hoy";
+  if (fecha === sumarDias(hoy, 1)) return "Mañana";
+  const dia = diaSemanaDe(fecha);
+  const m = fecha.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (dia === null || !m) return fecha;
+  return `${DIA_CORTO[dia]} ${Number(m[3])} ${MES_LARGO[Number(m[2]) - 1].slice(0, 3)}`;
+}
+
+// Los próximos n días (empezando por la noche de hoy), para la tira de días
+export function proximosDias(n = 14) {
+  const inicio = nocheActual().fecha;
+  return Array.from({ length: n }, (_, i) => {
+    const fecha = sumarDias(inicio, i);
+    const dia = diaSemanaDe(fecha) ?? 0;
+    return {
+      fecha,
+      dia,
+      nombre: i === 0 ? "Hoy" : i === 1 ? "Mañana" : DIA_CORTO[dia],
+      numero: Number(fecha.slice(8, 10)),
+      mes: MES_LARGO[Number(fecha.slice(5, 7)) - 1].slice(0, 3),
+    };
+  });
+}
+
+// Próxima fecha (desde hoy) que cae en ese día de la semana (0=domingo)
+export function proximaFechaConDia(desde: string, dia: number): string {
+  for (let i = 0; i < 7; i++) {
+    const f = sumarDias(desde, i);
+    if (diaSemanaDe(f) === dia) return f;
+  }
+  return desde;
+}
+
+// Eventos de ese local en esa fecha, por hora. Con soloTardeo, solo los que
+// empiezan por la tarde (para cuando el usuario está mirando tardeos).
+export function eventosDeFecha<E extends { fecha_inicio: string | null }>(
+  v: { events?: E[] },
+  fecha: string,
+  soloTardeo = false
+): E[] {
+  return (v.events ?? [])
+    .filter(
+      (e) =>
+        (e.fecha_inicio ?? "").slice(0, 10) === fecha &&
+        (!soloTardeo || esHoraDeTardeo(horaDe(e.fecha_inicio)))
+    )
+    .sort((a, b) => (a.fecha_inicio ?? "").localeCompare(b.fecha_inicio ?? ""));
+}
+
+// Horario habitual de ese día de la semana, ej. "00:00-06:00" o
+// "18:00-23:00 · 00:00-06:00" si hace tardeo y noche. null si no hay.
+export function horarioDelDia(
+  v: {
+    schedules?: {
+      dia_semana: number;
+      tipo: string | null;
+      apertura: string | null;
+      cierre: string | null;
+    }[];
+  },
+  dia: number,
+  soloTardeo = false
+): string | null {
+  const hs = (v.schedules ?? []).filter(
+    (h) =>
+      h.dia_semana === dia &&
+      h.apertura &&
+      h.cierre &&
+      (!soloTardeo || h.tipo === "tarde" || esHoraDeTardeo(horaDe(h.apertura)))
+  );
+  const piezas = Array.from(
+    new Set(
+      hs
+        .sort((a, b) => (a.apertura ?? "").localeCompare(b.apertura ?? ""))
+        .map((h) => `${hhmm(h.apertura)}-${hhmm(h.cierre)}`)
+    )
+  );
+  return piezas.length ? piezas.join(" · ") : null;
 }
 
 // Las fechas de events se guardan como hora local de Madrid sin zona horaria.

@@ -1,12 +1,12 @@
 import { supabase } from "./supabase";
 import {
-  abreEnDia,
   abreHoy,
   aceptaEdad,
   madridNow,
   norm,
-  nocheActual,
+  nocheDeFecha,
   num,
+  tardeoHoy,
   precioReferencia,
   venueTipos,
 } from "./utils";
@@ -29,6 +29,8 @@ export type VenueEvent = {
   precio_desde: number | null;
   foto_url: string | null;
   entrada_url: string | null;
+  rango_edad: string | null;
+  vestimenta: string | null;
   fiestas: Fiesta | null;
 };
 
@@ -86,7 +88,7 @@ const VENUE_SELECT = `
   photos ( image_url, is_main ),
   venue_genres ( genres ( nombre ) ),
   schedules ( dia_semana, apertura, cierre, tipo ),
-  events ( id, nombre, descripcion, fecha_inicio, fecha_fin, precio_desde, foto_url, entrada_url, fiestas ( id, nombre, descripcion, instagram, web, logo_url ) )
+  events ( id, nombre, descripcion, fecha_inicio, fecha_fin, precio_desde, foto_url, entrada_url, rango_edad, vestimenta, fiestas ( id, nombre, descripcion, instagram, web, logo_url ) )
 `;
 
 /* ------------------------------------------------------------------ */
@@ -140,7 +142,7 @@ export async function getUpcomingEvents(
   let query = supabase
     .from("events")
     .select(
-      "id, nombre, descripcion, fecha_inicio, fecha_fin, precio_desde, foto_url, entrada_url, fiestas ( id, nombre, descripcion, instagram, web, logo_url ), venues ( id, nombre, zones ( nombre ) )"
+      "id, nombre, descripcion, fecha_inicio, fecha_fin, precio_desde, foto_url, entrada_url, rango_edad, vestimenta, fiestas ( id, nombre, descripcion, instagram, web, logo_url ), venues ( id, nombre, zones ( nombre ) )"
     )
     .gte("fecha_inicio", `${madridNow().fecha}T00:00:00`)
     .order("fecha_inicio");
@@ -172,7 +174,7 @@ export type Filtros = {
   edad?: string; // edad de la persona: filtra locales que la admiten
   precio?: string; // "gratis" o el máximo, ej. "20"
   vestimenta?: string;
-  cuando?: string; // "hoy" o día de la semana 0-6 (0 = domingo)
+  fecha?: string; // YYYY-MM-DD: qué hay ese día (eventos o horario habitual)
 };
 
 export const FILTRO_KEYS: (keyof Filtros)[] = [
@@ -184,14 +186,13 @@ export const FILTRO_KEYS: (keyof Filtros)[] = [
   "edad",
   "precio",
   "vestimenta",
-  "cuando",
+  "fecha",
 ];
 
 export function filtrarLocales(
   todos: Venue[],
   f: Filtros
 ): { resultados: Venue[]; ocultosPorPrecio: number } {
-  const noche = nocheActual();
   const q = norm(f.q);
   const edad = f.edad ? Number(f.edad) : NaN;
 
@@ -219,11 +220,15 @@ export function filtrarLocales(
 
     if (Number.isFinite(edad) && !aceptaEdad(v.rango_edad, edad)) return false;
 
-    if (f.cuando) {
-      if (f.cuando === "hoy") {
-        if (!abreHoy(v, noche)) return false;
-      } else if (/^[0-6]$/.test(f.cuando)) {
-        if (!abreEnDia(v, Number(f.cuando))) return false;
+    if (f.fecha) {
+      const dia = nocheDeFecha(f.fecha);
+      if (dia) {
+        // Mirando tardeos, solo cuentan los locales con tardeo ESE día
+        if (f.tipo?.toLowerCase() === "tardeo") {
+          if (!tardeoHoy(v, dia)) return false;
+        } else if (!abreHoy(v, dia)) {
+          return false;
+        }
       }
     }
 
@@ -299,7 +304,7 @@ export async function getEventoById(id: string): Promise<EventoDetalle | null> {
   const { data, error } = await supabase
     .from("events")
     .select(
-      "id, nombre, descripcion, fecha_inicio, fecha_fin, precio_desde, foto_url, entrada_url, fiestas ( id, nombre, descripcion, instagram, web, logo_url ), venues ( id, nombre, direccion, zones ( nombre ), cities ( nombre ) )"
+      "id, nombre, descripcion, fecha_inicio, fecha_fin, precio_desde, foto_url, entrada_url, rango_edad, vestimenta, fiestas ( id, nombre, descripcion, instagram, web, logo_url ), venues ( id, nombre, direccion, zones ( nombre ), cities ( nombre ) )"
     )
     .eq("id", id)
     .single();

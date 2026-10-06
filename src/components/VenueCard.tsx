@@ -4,21 +4,31 @@ import {
   TIPO_GRADIENTE,
   abreHoy,
   edadLabel,
+  etiquetaFechaCorta,
+  eventosDeFecha,
+  formatHora,
   formatPrecio,
+  horarioDelDia,
   nocheActual,
-  tardeoHoy,
   num,
+  tardeoHoy,
   tipoInfo,
   tiposPrincipales,
   venueFoto,
 } from "@/lib/utils";
 
+const MAX_EVENTOS = 2;
+
 export function VenueCard({
   venue,
   noche,
+  soloTardeo = false,
 }: {
   venue: Venue;
+  // Día que se está mirando (por defecto, esta noche)
   noche?: { dia: number; fecha: string };
+  // Mirando tardeos: solo enseña lo que pasa por la tarde
+  soloTardeo?: boolean;
 }) {
   const foto = venueFoto(venue);
   const tipos = tiposPrincipales(venue);
@@ -27,9 +37,15 @@ export function VenueCard({
     .map((vg) => vg.genres?.nombre)
     .filter(Boolean) as string[];
 
-  const hoy = noche ?? nocheActual();
-  const abre = abreHoy(venue, hoy);
-  const tardeo = tardeoHoy(venue, hoy);
+  const hoy = nocheActual();
+  const dia = noche ?? hoy;
+  const etiquetaDia = etiquetaFechaCorta(dia.fecha).toLowerCase();
+
+  const abre = abreHoy(venue, dia);
+  const tardeo = tardeoHoy(venue, dia);
+  const eventos = eventosDeFecha(venue, dia.fecha, soloTardeo);
+  const horario = horarioDelDia(venue, dia.dia, soloTardeo);
+
   const edad = edadLabel(venue.rango_edad);
   const gratis = num(venue.precio_entrada) === 0;
 
@@ -41,10 +57,7 @@ export function VenueCard({
       : { label: "Copa", value: formatPrecio(venue.precio_copa) };
 
   return (
-    <Link
-      href={`/local/${venue.id}`}
-      className="group flex h-full flex-col overflow-hidden rounded-3xl border border-white/5 bg-zinc-900 transition duration-300 hover:-translate-y-1 hover:border-lime-400/30"
-    >
+    <article className="group relative isolate flex h-full flex-col overflow-hidden rounded-3xl border border-white/5 bg-zinc-900 transition duration-300 hover:-translate-y-1 hover:border-lime-400/30">
       {/* IMAGEN */}
       <div className="relative h-56 overflow-hidden bg-zinc-800">
         {foto ? (
@@ -82,7 +95,7 @@ export function VenueCard({
         {abre && (
           <span className="absolute right-4 top-4 flex items-center gap-1.5 rounded-full bg-lime-400 px-3 py-1 text-xs font-bold text-black">
             <span className="h-1.5 w-1.5 rounded-full bg-black" />
-            {tardeo ? "Tardeo hoy" : "Abre hoy"}
+            {tardeo ? "Tardeo" : "Abre"} {etiquetaDia}
           </span>
         )}
 
@@ -99,6 +112,58 @@ export function VenueCard({
       {/* INFORMACIÓN */}
       <div className="flex flex-1 flex-col p-5">
         <h3 className="text-lg font-bold leading-tight">{venue.nombre}</h3>
+
+        {/* QUÉ PASA ESE DÍA: el evento, o el horario habitual */}
+        {eventos.length > 0 ? (
+          <div className="mt-3 flex flex-col gap-2">
+            {eventos.slice(0, MAX_EVENTOS).map((e) => {
+              const precio = num(e.precio_desde);
+              return (
+                <Link
+                  key={e.id}
+                  href={`/evento/${e.id}`}
+                  className="relative z-20 flex items-center gap-3 rounded-2xl border border-lime-400/20 bg-lime-400/[0.06] p-2 transition hover:border-lime-400/50 hover:bg-lime-400/10"
+                >
+                  {e.foto_url ? (
+                    <img
+                      src={e.foto_url}
+                      alt=""
+                      loading="lazy"
+                      className="h-14 w-11 flex-none rounded-lg object-cover"
+                    />
+                  ) : (
+                    <span className="flex h-14 w-11 flex-none items-center justify-center rounded-lg bg-white/[0.06] text-lg">
+                      🎉
+                    </span>
+                  )}
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[11px] font-semibold text-lime-300">
+                      {formatHora(e.fecha_inicio)}
+                      {precio !== null
+                        ? ` · ${precio === 0 ? "Gratis" : `Desde ${formatPrecio(precio)}`}`
+                        : ""}
+                    </span>
+                    <span className="line-clamp-2 block text-sm font-semibold leading-tight">
+                      {e.nombre}
+                    </span>
+                  </span>
+                </Link>
+              );
+            })}
+            {eventos.length > MAX_EVENTOS && (
+              <p className="px-1 text-xs text-zinc-500">
+                +{eventos.length - MAX_EVENTOS} más ese día
+              </p>
+            )}
+          </div>
+        ) : (
+          horario && (
+            <p className="mt-3 text-sm text-zinc-400">
+              🕒 {horario}
+              <span className="text-zinc-600"> · sin evento publicado</span>
+            </p>
+          )
+        )}
 
         {(gratis || edad) && (
           <div className="mt-3 flex flex-wrap gap-2">
@@ -152,6 +217,13 @@ export function VenueCard({
           </span>
         </div>
       </div>
-    </Link>
+
+      {/* Toda la tarjeta lleva a la ficha del local; los eventos (z-20) llevan al evento */}
+      <Link
+        href={`/local/${venue.id}`}
+        aria-label={`Ver ${venue.nombre}`}
+        className="absolute inset-0 z-10"
+      />
+    </article>
   );
 }
