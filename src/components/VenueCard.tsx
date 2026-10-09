@@ -49,13 +49,6 @@ export function VenueCard({
   const edad = edadLabel(venue.rango_edad);
   const gratis = num(venue.precio_entrada) === 0;
 
-  const pmin = num(venue.precio_persona_min);
-  const pmax = num(venue.precio_persona_max);
-  const segundo =
-    pmin !== null && pmax !== null
-      ? { label: "Medio/persona", value: `€${pmin}-${pmax}` }
-      : { label: "Copa", value: formatPrecio(venue.precio_copa) };
-
   return (
     <article className="group relative isolate flex h-full flex-col overflow-hidden rounded-3xl border border-white/5 bg-zinc-900 transition duration-300 hover:-translate-y-1 hover:border-lime-400/30">
       {/* IMAGEN */}
@@ -198,20 +191,7 @@ export function VenueCard({
           </div>
         )}
 
-        <div className="mt-auto flex items-end justify-between border-t border-white/5 pt-4 text-sm">
-          <div className="flex gap-5">
-            <div>
-              <p className="text-xs text-zinc-500">Entrada</p>
-              <p className="font-semibold text-white">
-                {formatPrecio(venue.precio_entrada)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-zinc-500">{segundo.label}</p>
-              <p className="font-semibold text-white">{segundo.value}</p>
-            </div>
-          </div>
-
+        <div className="mt-auto flex items-center justify-end pt-4">
           <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-white/[0.06] text-zinc-400 transition group-hover:bg-lime-400 group-hover:text-black">
             →
           </span>
