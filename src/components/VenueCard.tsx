@@ -49,6 +49,13 @@ export function VenueCard({
   const edad = edadLabel(venue.rango_edad);
   const gratis = num(venue.precio_entrada) === 0;
 
+  const pmin = num(venue.precio_persona_min);
+  const pmax = num(venue.precio_persona_max);
+  const segundo =
+    pmin !== null && pmax !== null
+      ? { label: "Medio/persona", value: `€${pmin}-${pmax}` }
+      : { label: "Copa", value: formatPrecio(venue.precio_copa) };
+
   return (
     <article className="group relative isolate flex h-full flex-col overflow-hidden rounded-3xl border border-white/5 bg-zinc-900 transition duration-300 hover:-translate-y-1 hover:border-lime-400/30">
       {/* IMAGEN */}
@@ -108,43 +115,71 @@ export function VenueCard({
 
         {/* QUÉ PASA ESE DÍA: el evento, o el horario habitual */}
         {eventos.length > 0 ? (
-          <div className="mt-3 flex flex-col gap-2">
-            {eventos.slice(0, MAX_EVENTOS).map((e) => {
-              const precio = num(e.precio_desde);
-              return (
-                <Link
-                  key={e.id}
-                  href={`/evento/${e.id}`}
-                  className="relative z-20 flex items-center gap-3 rounded-2xl border border-lime-400/20 bg-lime-400/[0.06] p-2 transition hover:border-lime-400/50 hover:bg-lime-400/10"
-                >
-                  {e.foto_url ? (
-                    <img
-                      src={e.foto_url}
-                      alt=""
-                      loading="lazy"
-                      className="h-14 w-11 flex-none rounded-lg object-cover"
-                    />
-                  ) : (
-                    <span className="flex h-14 w-11 flex-none items-center justify-center rounded-lg bg-white/[0.06] text-lg">
-                      🎉
+          <div className="mt-4">
+            <p className="mb-1.5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-lime-400">
+              <span className="h-px w-5 bg-lime-400/60" />
+              {eventos.length > 1 ? `${eventos.length} eventos` : "Evento"} ·{" "}
+              {etiquetaDia}
+            </p>
+
+            <div className="-mx-2 flex flex-col">
+              {eventos.slice(0, MAX_EVENTOS).map((e) => {
+                const precio = num(e.precio_desde);
+                return (
+                  <Link
+                    key={e.id}
+                    href={`/evento/${e.id}`}
+                    className="group/ev relative z-20 flex items-center gap-3.5 rounded-2xl p-2 transition duration-200 hover:bg-white/[0.05]"
+                  >
+                    {e.foto_url ? (
+                      <img
+                        src={e.foto_url}
+                        alt=""
+                        loading="lazy"
+                        className="h-[76px] w-[60px] flex-none rounded-xl object-cover shadow-lg shadow-black/50 ring-1 ring-white/10 transition duration-300 group-hover/ev:scale-[1.04]"
+                      />
+                    ) : (
+                      <span className="flex h-[76px] w-[60px] flex-none items-center justify-center rounded-xl bg-gradient-to-br from-fuchsia-600/30 to-violet-900/30 text-xl ring-1 ring-white/10">
+                        🎉
+                      </span>
+                    )}
+
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center gap-2">
+                        <span className="text-xs font-bold tabular-nums text-lime-300">
+                          {formatHora(e.fecha_inicio)}
+                        </span>
+                        {precio !== null &&
+                          (precio === 0 ? (
+                            <span className="rounded-full bg-lime-400 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-black">
+                              Gratis
+                            </span>
+                          ) : (
+                            <span className="text-xs text-zinc-400">
+                              Desde {formatPrecio(precio)}
+                            </span>
+                          ))}
+                      </span>
+                      <span className="mt-0.5 line-clamp-2 block text-[15px] font-bold leading-snug">
+                        {e.nombre}
+                      </span>
+                      {e.fiestas?.nombre && e.fiestas.nombre !== e.nombre && (
+                        <span className="mt-0.5 block truncate text-xs text-zinc-500">
+                          {e.fiestas.nombre}
+                        </span>
+                      )}
                     </span>
-                  )}
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[11px] font-semibold text-lime-300">
-                      {formatHora(e.fecha_inicio)}
-                      {precio !== null
-                        ? ` · ${precio === 0 ? "Gratis" : `Desde ${formatPrecio(precio)}`}`
-                        : ""}
+
+                    <span className="flex-none text-lg text-zinc-600 transition group-hover/ev:translate-x-0.5 group-hover/ev:text-lime-400">
+                      ›
                     </span>
-                    <span className="line-clamp-2 block text-sm font-semibold leading-tight">
-                      {e.nombre}
-                    </span>
-                  </span>
-                </Link>
-              );
-            })}
+                  </Link>
+                );
+              })}
+            </div>
+
             {eventos.length > MAX_EVENTOS && (
-              <p className="px-1 text-xs text-zinc-500">
+              <p className="mt-1 text-xs text-zinc-500">
                 +{eventos.length - MAX_EVENTOS} más ese día
               </p>
             )}
@@ -191,7 +226,20 @@ export function VenueCard({
           </div>
         )}
 
-        <div className="mt-auto flex items-center justify-end pt-4">
+        <div className="mt-auto flex items-end justify-between border-t border-white/5 pt-4 text-sm">
+          <div className="flex gap-5">
+            <div>
+              <p className="text-xs text-zinc-500">Entrada</p>
+              <p className="font-semibold text-white">
+                {formatPrecio(venue.precio_entrada)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-zinc-500">{segundo.label}</p>
+              <p className="font-semibold text-white">{segundo.value}</p>
+            </div>
+          </div>
+
           <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-white/[0.06] text-zinc-400 transition group-hover:bg-lime-400 group-hover:text-black">
             →
           </span>

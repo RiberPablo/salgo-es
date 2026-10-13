@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getEventosEspeciales } from "@/lib/venues";
+import { eventosQueCoinciden, getEventos } from "@/lib/venues";
 import {
   EVENTO_CATEGORIAS,
   etiquetaFechaLarga,
@@ -28,7 +28,14 @@ export default async function EventosPage({
   searchParams: Promise<Params>;
 }) {
   const raw = await searchParams;
-  const todos = await getEventosEspeciales();
+  const q = primero(raw.q);
+  const local = primero(raw.local);
+  const deTodos = eventosQueCoinciden(await getEventos("todos"), q);
+  // Filtro por local: solo los eventos de ese sitio (llega desde su ficha)
+  const nombreLocal = local
+    ? deTodos.find((e) => e.venues?.id === local)?.venues?.nombre ?? null
+    : null;
+  const todos = local ? deTodos.filter((e) => e.venues?.id === local) : deTodos;
 
   // Tipos que hay de verdad ahora mismo (con su número de eventos)
   const conteo = new Map<string, number>();
@@ -63,10 +70,19 @@ export default async function EventosPage({
     grupos.get(d)!.push(e);
   }
 
-  function hrefCon(nuevo: { categoria?: string; fecha?: string }) {
+  function hrefCon(nuevo: {
+    categoria?: string;
+    fecha?: string;
+    q?: string;
+    local?: string;
+  }) {
     const p = new URLSearchParams();
     const c = "categoria" in nuevo ? nuevo.categoria : categoria;
     const f = "fecha" in nuevo ? nuevo.fecha : fecha;
+    const ll = "local" in nuevo ? nuevo.local : local;
+    if (ll) p.set("local", ll);
+    const qq = "q" in nuevo ? nuevo.q : q;
+    if (qq) p.set("q", qq);
     if (c) p.set("categoria", c);
     if (f) p.set("fecha", f);
     const qs = p.toString();
@@ -95,18 +111,77 @@ export default async function EventosPage({
 
       <section className="px-5 pb-6 pt-10">
         <div className="mx-auto max-w-7xl">
-          <p className="text-sm font-medium text-lime-400">AGENDA DE MADRID</p>
+          <p className="text-sm font-medium text-lime-400">
+            {nombreLocal ? "AGENDA DEL LOCAL" : "AGENDA DE MADRID"}
+          </p>
           <h1 className="mt-1 text-3xl font-black md:text-5xl">
-            {fecha ? `Eventos el ${etiquetaFechaLarga(fecha)}` : "Eventos"}
+            {fecha
+              ? `Eventos el ${etiquetaFechaLarga(fecha)}`
+              : nombreLocal
+              ? `Eventos en ${nombreLocal}`
+              : "Eventos"}
           </h1>
           <p className="mt-2 max-w-2xl text-zinc-500">
-            Conciertos, festivales y fiestas populares: la Hispanidad, fiestas
-            patronales y todo lo que pasa en la ciudad fuera de las
-            discotecas.
+            Todo lo que pasa en Madrid: fiestas en discotecas y locales,
+            conciertos, festivales y fiestas populares.
           </p>
 
+          {/* FILTRO ACTIVO: el local */}
+          {nombreLocal && (
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              <Link
+                href={hrefCon({ local: undefined })}
+                className="group flex items-center gap-2 rounded-full border border-lime-400/30 bg-lime-400/10 px-3 py-1.5 text-sm text-lime-200 transition hover:border-lime-400"
+              >
+                📍 {nombreLocal}
+                <span className="text-lime-400/60 group-hover:text-lime-300">
+                  ✕
+                </span>
+              </Link>
+              <Link
+                href={`/local/${local}`}
+                className="px-2 text-sm text-zinc-500 transition hover:text-white"
+              >
+                Ver ficha del local →
+              </Link>
+              <Link
+                href={hrefCon({ local: undefined })}
+                className="px-2 text-sm text-zinc-500 transition hover:text-white"
+              >
+                Ver todos los eventos
+              </Link>
+            </div>
+          )}
+
+          {/* BUSCAR EVENTOS */}
+          <form action="/eventos" method="get" className="mt-5 flex max-w-xl gap-2">
+            {categoria && <input type="hidden" name="categoria" value={categoria} />}
+            {local && <input type="hidden" name="local" value={local} />}
+            <input
+              type="text"
+              name="q"
+              defaultValue={q ?? ""}
+              placeholder="Busca un evento, artista, fiesta o lugar"
+              className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-lime-400/50"
+            />
+            <button
+              type="submit"
+              className="rounded-xl bg-lime-400 px-5 py-3 text-sm font-bold text-black transition hover:bg-lime-300"
+            >
+              Buscar
+            </button>
+            {q && (
+              <Link
+                href={hrefCon({ q: undefined })}
+                className="flex items-center rounded-xl border border-white/10 px-4 text-sm text-zinc-400 transition hover:text-white"
+              >
+                Quitar
+              </Link>
+            )}
+          </form>
+
           {/* TIPO DE EVENTO */}
-          {conteo.size > 1 && (
+          {!local && conteo.size > 1 && (
             <div className="mt-6 flex flex-wrap gap-2">
               <Link
                 href={hrefCon({ categoria: undefined })}
@@ -128,7 +203,7 @@ export default async function EventosPage({
           )}
 
           {/* ELEGIR DÍA */}
-          {dias.length > 0 && (
+          {!local && dias.length > 0 && (
             <div className="mt-5">
               <DayStrip
                 dias={dias}
@@ -144,7 +219,7 @@ export default async function EventosPage({
         <div className="mx-auto max-w-7xl">
           {visibles.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-white/10 p-16 text-center text-zinc-500">
-              Todavía no hay eventos publicados. Vuelve pronto 👀
+              {q ? `No hay eventos que coincidan con “${q}”.` : "Todavía no hay eventos publicados. Vuelve pronto 👀"}
               <br />
               <Link
                 href="/buscar?fecha=hoy"
@@ -152,6 +227,22 @@ export default async function EventosPage({
               >
                 Ver qué abre esta noche →
               </Link>
+            </div>
+          ) : local ? (
+            /* Un solo local: sus próximas fechas en fila, para deslizar */
+            <div>
+              <p className="mb-4 text-sm text-zinc-500">
+                {visibles.length}{" "}
+                {visibles.length === 1 ? "próximo evento" : "próximos eventos"}
+                {visibles.length > 1 && " · desliza para ver más →"}
+              </p>
+              <div className="-mx-5 flex snap-x snap-mandatory gap-5 overflow-x-auto px-5 pb-5 [scrollbar-color:rgba(255,255,255,0.2)_transparent] [scrollbar-width:thin]">
+                {visibles.map((e) => (
+                  <div key={e.id} className="w-60 flex-none snap-start sm:w-64">
+                    <EventCard evento={e} />
+                  </div>
+                ))}
+              </div>
             </div>
           ) : (
             <div className="flex flex-col gap-12">

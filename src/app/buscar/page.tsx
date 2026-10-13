@@ -1,5 +1,11 @@
 import Link from "next/link";
-import { FILTRO_KEYS, filtrarLocales, getVenues } from "@/lib/venues";
+import {
+  FILTRO_KEYS,
+  eventosQueCoinciden,
+  filtrarLocales,
+  getEventos,
+  getVenues,
+} from "@/lib/venues";
 import type { Filtros } from "@/lib/venues";
 import {
   etiquetaFechaCorta,
@@ -17,6 +23,7 @@ import { Footer } from "@/components/Footer";
 import { FilterPanel } from "@/components/FilterPanel";
 import { DayStrip } from "@/components/DayStrip";
 import { VenueCard } from "@/components/VenueCard";
+import { EventCard } from "@/components/EventCard";
 
 export const dynamic = "force-dynamic";
 
@@ -80,7 +87,14 @@ export default async function BuscarPage({
     if (valor) filtros[key] = valor;
   }
 
-  const todos = await getVenues();
+  const [todos, todosEventos] = await Promise.all([
+    getVenues(),
+    filtros.q ? getEventos("todos") : Promise.resolve([]),
+  ]);
+  // Con texto de búsqueda, también se buscan eventos (conciertos, fiestas...)
+  const eventosEncontrados = filtros.q
+    ? eventosQueCoinciden(todosEventos, filtros.q)
+    : [];
   const { resultados, ocultosPorPrecio } = filtrarLocales(todos, filtros);
   const noche = (fecha && nocheDeFecha(fecha)) || nocheActual();
   const soloTardeo = filtros.tipo?.toLowerCase() === "tardeo";
@@ -149,7 +163,15 @@ export default async function BuscarPage({
               ? "Resultados"
               : "Todos los locales"}
           </h1>
-          <p className="mt-2 text-zinc-500">{cabecera(resultados.length)}</p>
+          <p className="mt-2 text-zinc-500">
+            {resultados.length + eventosEncontrados.length > 0
+              ? `${resultados.length} ${resultados.length === 1 ? "local" : "locales"}${
+                  filtros.q
+                    ? ` y ${eventosEncontrados.length} ${eventosEncontrados.length === 1 ? "evento" : "eventos"}`
+                    : ""
+                }`
+              : cabecera(0)}
+          </p>
 
           {/* ELEGIR DÍA */}
           <div className="mt-6">
@@ -207,9 +229,40 @@ export default async function BuscarPage({
         </div>
       </section>
 
+      {eventosEncontrados.length > 0 && (
+        <section className="px-5 pb-6 pt-4">
+          <div className="mx-auto max-w-7xl">
+            <div className="mb-4 flex items-end justify-between gap-4">
+              <h2 className="text-xl font-bold">
+                Eventos{" "}
+                <span className="text-base font-normal text-zinc-500">
+                  ({eventosEncontrados.length})
+                </span>
+              </h2>
+              <Link
+                href={`/eventos?q=${encodeURIComponent(filtros.q as string)}`}
+                className="text-sm text-lime-400 hover:underline"
+              >
+                Ver en Eventos →
+              </Link>
+            </div>
+            <div className="flex snap-x gap-5 overflow-x-auto pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {eventosEncontrados.slice(0, 12).map((e) => (
+                <div key={e.id} className="w-60 flex-none snap-start">
+                  <EventCard evento={e} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="px-5 pb-16 pt-4">
         <div className="mx-auto max-w-7xl">
-          {resultados.length === 0 ? (
+          {resultados.length > 0 && eventosEncontrados.length > 0 && (
+            <h2 className="mb-4 text-xl font-bold">Locales</h2>
+          )}
+          {resultados.length === 0 && eventosEncontrados.length > 0 ? null : resultados.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-white/10 p-16 text-center text-zinc-500">
               {fecha
                 ? "No tenemos locales con ese día confirmado. Prueba con otro día o quita algún filtro."

@@ -15,6 +15,7 @@ import {
   venueFoto,
 } from "@/lib/utils";
 import { Header } from "@/components/Header";
+import { BotonEntrada } from "@/components/ActionButtons";
 import { Footer } from "@/components/Footer";
 
 export const dynamic = "force-dynamic";
@@ -200,14 +201,9 @@ export default async function EventoPage({
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               {evento.entrada_url && (
-                <a
-                  href={evento.entrada_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-xl bg-lime-400 px-6 py-3 text-center text-sm font-bold text-black transition hover:bg-lime-300"
-                >
-                  Comprar entrada →
-                </a>
+                <div className="sm:min-w-[14rem]">
+                  <BotonEntrada href={evento.entrada_url} />
+                </div>
               )}
               {evento.fuente_url && (
                 <a

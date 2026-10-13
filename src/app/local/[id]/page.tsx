@@ -19,6 +19,12 @@ import {
 } from "@/lib/utils";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import {
+  BotonEntrada,
+  BotonInstagram,
+  BotonMapa,
+  BotonWeb,
+} from "@/components/ActionButtons";
 
 export const dynamic = "force-dynamic";
 
@@ -58,6 +64,9 @@ export default async function VenueDetailPage({
   const eventos = (venue.events ?? [])
     .filter((e) => e.fecha_inicio && e.fecha_inicio.slice(0, 10) >= hoy)
     .sort((a, b) => (a.fecha_inicio! < b.fecha_inicio! ? -1 : 1));
+
+  // Comprar entrada: el próximo evento que tenga enlace de venta
+  const conEntrada = eventos.find((e) => e.entrada_url) ?? null;
 
   const mapsUrl = venue.direccion
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
@@ -215,7 +224,7 @@ export default async function VenueDetailPage({
                 <h2 className="text-xl font-bold">Próximos eventos</h2>
                 {eventos.length > MAX_EVENTOS_VENUE && (
                   <Link
-                    href="/eventos"
+                    href={`/eventos?local=${venue.id}`}
                     className="text-sm text-zinc-400 transition hover:text-lime-400"
                   >
                     Ver más fechas →
@@ -334,35 +343,33 @@ export default async function VenueDetailPage({
           )}
 
           <div className="mt-6 flex flex-col gap-3">
-            {mapsUrl && (
-              <a
-                href={mapsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-xl bg-lime-400 py-3 text-center text-sm font-bold text-black transition hover:bg-lime-300"
-              >
-                Cómo llegar 📍
-              </a>
-            )}
-            {venue.instagram && (
-              <a
-                href={venue.instagram}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-xl bg-white/[0.05] py-3 text-center text-sm font-medium transition hover:bg-white hover:text-black"
-              >
-                Instagram →
-              </a>
-            )}
-            {venue.web && (
-              <a
-                href={venue.web}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-xl border border-white/10 py-3 text-center text-sm font-medium transition hover:bg-white hover:text-black"
-              >
-                Web oficial →
-              </a>
+            {conEntrada ? (
+              <>
+                {/* Con entradas a la venta: ese es el botón protagonista */}
+                <BotonEntrada
+                  href={conEntrada.entrada_url as string}
+                  detalle={`${formatFecha(conEntrada.fecha_inicio)} · ${
+                    conEntrada.nombre ?? venue.nombre
+                  }`}
+                />
+                <div className="flex gap-2">
+                  {venue.instagram && (
+                    <BotonInstagram href={venue.instagram} tam="pequeno" />
+                  )}
+                  {venue.web && <BotonWeb href={venue.web} tam="pequeno" />}
+                  {mapsUrl && <BotonMapa href={mapsUrl} tam="pequeno" />}
+                </div>
+              </>
+            ) : (
+              <>
+                {(venue.instagram || venue.web) && (
+                  <div className="flex gap-2">
+                    {venue.instagram && <BotonInstagram href={venue.instagram} />}
+                    {venue.web && <BotonWeb href={venue.web} />}
+                  </div>
+                )}
+                {mapsUrl && <BotonMapa href={mapsUrl} />}
+              </>
             )}
           </div>
         </aside>

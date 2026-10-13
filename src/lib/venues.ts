@@ -188,6 +188,67 @@ export async function getEventosEspeciales(): Promise<EventoConLocal[]> {
   return data as unknown as EventoConLocal[];
 }
 
+export type GrupoEventos = "todos" | "fiesta" | "especiales";
+
+// Todos los eventos de hoy en adelante. "fiesta" = fiestas en locales;
+// "especiales" = conciertos, festivales y fiestas populares.
+export async function getEventos(
+  grupo: GrupoEventos = "todos"
+): Promise<EventoConLocal[]> {
+  let query = supabase
+    .from("events")
+    .select(EVENTO_SELECT)
+    .gte("fecha_inicio", `${madridNow().fecha}T00:00:00`)
+    .order("fecha_inicio");
+
+  if (grupo === "fiesta") query = query.eq("categoria", "fiesta");
+  if (grupo === "especiales") query = query.neq("categoria", "fiesta");
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error("Error cargando eventos:", error.message);
+    return [];
+  }
+
+  return data as unknown as EventoConLocal[];
+}
+
+// Eventos cuyo nombre, descripción, sitio, local, zona, fiesta o ciudad
+// contienen el texto buscado (sin tildes ni mayúsculas).
+export function eventosQueCoinciden(
+  eventos: EventoConLocal[],
+  q: string | undefined
+): EventoConLocal[] {
+  const t = norm(q);
+  if (!t) return eventos;
+  return eventos.filter((e) => {
+    const texto = norm(
+      [
+        e.nombre,
+        e.descripcion,
+        e.lugar,
+        e.direccion,
+        e.venues?.nombre,
+        e.venues?.zones?.nombre,
+        e.fiestas?.nombre,
+        e.cities?.nombre,
+        EVENTO_CATEGORIAS_TEXTO[e.categoria ?? "fiesta"],
+      ]
+        .filter(Boolean)
+        .join(" ")
+    );
+    return texto.includes(t);
+  });
+}
+
+const EVENTO_CATEGORIAS_TEXTO: Record<string, string> = {
+  fiesta: "fiesta",
+  concierto: "concierto conciertos",
+  festival: "festival festivales",
+  popular: "fiesta popular fiestas populares",
+};
+
 /* ------------------------------------------------------------------ */
 /* Filtros de búsqueda                                                 */
 /* ------------------------------------------------------------------ */
