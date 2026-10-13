@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getEventosEspeciales, getUpcomingEvents, getVenues } from "@/lib/venues";
+import { getUpcomingEvents, getVenues } from "@/lib/venues";
 import {
   CATEGORIAS,
   DIAS,
@@ -19,11 +19,9 @@ export const dynamic = "force-dynamic";
 
 const CHIPS = [
   { label: "🌙 Esta noche", href: "/buscar?fecha=hoy" },
-  { label: "🆓 Entrada gratis", href: "/buscar?precio=gratis" },
+  { label: "🆓 Gratis", href: "/buscar?precio=gratis" },
   { label: "🎵 Música latina", href: "/buscar?genero=M%C3%BAsica%20Latina" },
   { label: "🔥 Reggaetón", href: "/buscar?genero=Reggaet%C3%B3n" },
-  { label: "🌍 Afro House", href: "/buscar?genero=Afro%20House" },
-  { label: "🎉 Comercial", href: "/buscar?genero=Comercial" },
 ];
 
 // Posiciones del collage de fotos del hero (solo escritorio)
@@ -37,10 +35,9 @@ const SCROLLER =
   "flex snap-x snap-mandatory gap-5 overflow-x-auto pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
 
 export default async function Home() {
-  const [venues, eventos, especiales] = await Promise.all([
+  const [venues, eventos] = await Promise.all([
     getVenues(),
     getUpcomingEvents(),
-    getEventosEspeciales(),
   ]);
 
   const noche = nocheActual();
@@ -49,25 +46,6 @@ export default async function Home() {
     ...c,
     count: venues.filter((v) => venueTipos(v).includes(c.tipo)).length,
   }));
-
-  // Los tipos de local y, al final, la agenda de eventos (antes iba "Bares")
-  const tarjetas = [
-    ...categorias.map((c) => ({
-      href: `/categoria/${c.slug}`,
-      icon: c.icon,
-      nombre: c.nombre,
-      detalle: `${c.count} ${c.count === 1 ? "sitio" : "sitios"}`,
-    })),
-    {
-      href: "/eventos",
-      icon: "🎤",
-      nombre: "Eventos",
-      detalle:
-        especiales.length > 0
-          ? `${especiales.length} ${especiales.length === 1 ? "próximo" : "próximos"}`
-          : "Conciertos y fiestas",
-    },
-  ];
 
   const ciudades = new Set(
     venues.map((v) => v.cities?.nombre).filter(Boolean) as string[]
@@ -105,38 +83,9 @@ export default async function Home() {
               </h1>
 
               <p className="mt-7 max-w-xl text-base leading-relaxed text-zinc-400 md:text-lg">
-                Encuentra discotecas, pubs, tardeos y eventos. Filtra por zona,
+                Encuentra discotecas, pubs, tardeos y bares en Madrid. Filtra por zona,
                 música, edad, precio o el día que quieres salir.
               </p>
-
-              <div className="mt-7 flex flex-wrap gap-x-8 gap-y-3 text-sm">
-                <div>
-                  <p className="text-2xl font-black text-white">
-                    {venues.length}
-                  </p>
-                  <p className="text-zinc-500">locales</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-black text-white">
-                    {ciudades.size}
-                  </p>
-                  <p className="text-zinc-500">
-                    {ciudades.size === 1 ? "ciudad" : "ciudades"}
-                  </p>
-                </div>
-                {eventos.length > 0 && (
-                  <div>
-                    <p className="text-2xl font-black text-lime-400">
-                      {eventos.length}
-                    </p>
-                    <p className="text-zinc-500">
-                      {eventos.length === 1
-                        ? "evento próximo"
-                        : "eventos próximos"}
-                    </p>
-                  </div>
-                )}
-              </div>
             </div>
 
             {fotosHero.length >= 2 && (
@@ -211,15 +160,12 @@ export default async function Home() {
 
       {/* PRÓXIMOS EVENTOS */}
       {eventos.length > 0 && (
-        <section className="px-5 py-10">
+        <section className="px-5 py-12">
           <div className="mx-auto max-w-7xl">
-            <div className="mb-6 flex items-end justify-between gap-4">
+            <div className="mb-8 flex items-end justify-between gap-4">
               <div>
                 <p className="text-sm font-medium text-lime-400">AGENDA</p>
-                <h2 className="mt-1 text-3xl font-bold">Próximos eventos</h2>
-                <p className="mt-2 text-zinc-500">
-                  Fechas concretas, cada una con su temática.
-                </p>
+                <h2 className="mt-2 text-3xl font-bold">Próximos eventos</h2>
               </div>
               <Link
                 href="/eventos"
@@ -229,40 +175,9 @@ export default async function Home() {
               </Link>
             </div>
 
-            <div className={SCROLLER}>
-              {eventos.slice(0, 10).map((e) => (
-                <div key={e.id} className="w-60 flex-none snap-start">
-                  <EventCard evento={e} />
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* EVENTOS EN MADRID: conciertos, Hispanidad, fiestas populares... */}
-      {especiales.length > 0 && (
-        <section className="px-5 py-10">
-          <div className="mx-auto max-w-7xl">
-            <div className="mb-6 flex items-end justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium text-lime-400">EN LA CIUDAD</p>
-                <h2 className="mt-1 text-3xl font-bold">Conciertos y fiestas populares</h2>
-                <p className="mt-2 text-zinc-500">
-                  Hispanidad, fiestas patronales y más: muchos son gratis.
-                </p>
-              </div>
-              <Link
-                href="/eventos"
-                className="w-fit flex-none rounded-xl border border-white/10 px-4 py-2 text-sm text-zinc-300 transition hover:bg-white hover:text-black"
-              >
-                Ver todos →
-              </Link>
-            </div>
-
-            <div className={SCROLLER}>
-              {especiales.slice(0, 10).map((e) => (
-                <div key={e.id} className="w-60 flex-none snap-start">
+            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+              {eventos.slice(0, 6).map((e) => (
+                <div key={e.id}>
                   <EventCard evento={e} />
                 </div>
               ))}
@@ -280,17 +195,19 @@ export default async function Home() {
           </div>
 
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            {tarjetas.map((c) => (
+            {categorias.map((c) => (
               <Link
-                key={c.href}
-                href={c.href}
+                key={c.slug}
+                href={`/categoria/${c.slug}`}
                 className="group rounded-3xl border border-white/5 bg-zinc-900 p-5 text-left transition duration-300 hover:-translate-y-1 hover:border-lime-400/40 hover:bg-zinc-800"
               >
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.05] text-2xl transition group-hover:bg-lime-400">
                   {c.icon}
                 </div>
                 <h3 className="mt-8 text-lg font-bold">{c.nombre}</h3>
-                <p className="mt-1 text-sm text-zinc-500">{c.detalle}</p>
+                <p className="mt-1 text-sm text-zinc-500">
+                  {c.count} {c.count === 1 ? "sitio" : "sitios"}
+                </p>
                 <div className="mt-5 text-lime-400">→</div>
               </Link>
             ))}
